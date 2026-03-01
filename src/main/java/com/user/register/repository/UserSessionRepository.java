@@ -1,6 +1,5 @@
 package com.user.register.repository;
 
-
 import com.user.register.entity.UserSession;
 import com.user.register.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +13,7 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     Optional<UserSession> findByIdAndUser(Long id, User user);
 
     void deleteByUser(User user);
+
+    // ✅ Add this method to find a session by its token
+    Optional<UserSession> findByToken(String token);
 }

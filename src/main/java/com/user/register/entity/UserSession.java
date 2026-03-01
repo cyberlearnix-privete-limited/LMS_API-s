@@ -25,6 +25,6 @@ public class UserSession {
 
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
-
+    private String ipAddress;
     private LocalDateTime expiresAt;
 }

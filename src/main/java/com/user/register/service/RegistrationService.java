@@ -12,6 +12,7 @@ import com.user.register.exception.LoginFailedException;
 import com.user.register.repository.UserRepository;
 import com.user.register.repository.OTPCodeRepository;
 import com.user.register.repository.AuditLogRepository;
+import com.user.register.repository.UserSessionRepository;
 import com.user.register.security.JwtUtil;
 import com.user.register.util.SecurityUtils;
 
@@ -34,10 +35,12 @@ import java.util.*;
 @Transactional
 
 public class RegistrationService {
+    private final UserSessionRepository userSessionRepository;   // ✅ inject
+    private final AuditLogRepository auditLogRepository;         // ✅ inject
+
 
     private final UserRepository userRepository;
     private final OTPCodeRepository otpRepository;
-    private final AuditLogRepository auditLogRepository;
     private final JavaMailSender mailSender;
     private final BCryptPasswordEncoder passwordEncoder; // inject bean
     private static final int MAX_FAILED_LOGIN = 5;
@@ -710,8 +713,9 @@ public class RegistrationService {
 
         User user = userRepository.findById(Long.parseLong(userId))
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        blacklistService.blacklistToken(accessToken);
-        // 2️⃣ Add token to blacklist
+
+        // 2️⃣ Delete the session from DB instead of in-memory blacklist
+        userSessionRepository.findByToken(accessToken).ifPresent(userSessionRepository::delete);
 
         // 3️⃣ Save audit log
         auditLogRepository.save(AuditLog.builder()

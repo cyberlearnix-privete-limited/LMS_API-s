@@ -10,6 +10,7 @@ import com.user.register.repository.UserRepository;
 import com.user.register.repository.UserSessionRepository;
 import com.user.register.security.JwtUtil;
 import com.user.register.service.RegistrationService;
+import com.user.register.service.SessionService;
 import com.user.register.service.TokenBlacklistService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -41,6 +43,7 @@ public class RegistrationController {
     private TokenBlacklistService blacklistService;
     private Object userId;
     private String token;
+    private Object SessionService;
 
     @PostMapping(value = "/upload/profile-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadProfilePhoto(@RequestParam("file") MultipartFile file) {
@@ -215,6 +218,7 @@ public class RegistrationController {
             // 2️⃣ Fetch user from DB
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
+
             // 3️⃣ Save session
             UserSession session = UserSession.builder()
                     .user(user)
@@ -230,7 +234,7 @@ public class RegistrationController {
                     loginResponse,
                     LocalDateTime.now()
             );
-
+           
             return ResponseEntity.ok(response);
 
         } catch (LoginFailedException ex) {
@@ -374,16 +378,19 @@ public class RegistrationController {
                     .body(new ApiResponse<>(false, e.getMessage(), null, LocalDateTime.now()));
         }
     }
-
     @PostMapping("/logout")
     public ApiResponse<Map<String, Object>> logout(
             @RequestHeader("Authorization") String authHeader,
             HttpServletRequest request) {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Authorization header missing or invalid");
+            return new ApiResponse<>(
+                    false,
+                    "Authorization header missing or invalid",
+                    null,
+                    LocalDateTime.now()
+            );
         }
-
         String accessToken = authHeader.substring(7); // remove "Bearer "
 
         // ===================== Friendly device detection =====================
@@ -392,20 +399,22 @@ public class RegistrationController {
 
         if (userAgent != null && !userAgent.isBlank()) {
             String uaLower = userAgent.toLowerCase();
-            if (uaLower.contains("mozilla") || uaLower.contains("chrome") || uaLower.contains("firefox") || uaLower.contains("safari") || uaLower.contains("edge")) {
+            if (uaLower.contains("mozilla") || uaLower.contains("chrome") || uaLower.contains("firefox")
+                    || uaLower.contains("safari") || uaLower.contains("edge")) {
                 deviceInfo = "Web Browser";
-            } else if (uaLower.contains("android") || uaLower.contains("iphone") || uaLower.contains("ipad") || uaLower.contains("mobile")) {
+            } else if (uaLower.contains("android") || uaLower.contains("iphone") || uaLower.contains("ipad")
+                    || uaLower.contains("mobile")) {
                 deviceInfo = "Mobile App";
             } else if (uaLower.contains("postman")) {
                 deviceInfo = "API Client";
             }
         }
 
-        // ✅ Pass processed deviceInfo instead of raw User-Agent
+        // ===================== Logout in service =====================
         Map<String, Object> data = registrationService.logoutCurrentDevice(
                 accessToken,
                 request.getRemoteAddr(),
-                deviceInfo // <-- fix here
+                deviceInfo
         );
 
         return new ApiResponse<>(
