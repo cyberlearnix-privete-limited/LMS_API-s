@@ -143,21 +143,6 @@ public class JwtUtil {
         }
         return claims.getSubject();
     }
-    // Validate JWT and return email claim
-    public String validateAccessTokenAndGetEmail(String token) {
-        try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(SECRET.getBytes())
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-
-            return claims.getSubject(); // assuming email is stored in "sub"
-        } catch (JwtException e) {
-            throw new RuntimeException("Invalid or expired JWT token");
-        }
-    }
-
     // Optional: generate JWT for testing
     public String generateToken(String email, long expirationMs) {
         return Jwts.builder()
