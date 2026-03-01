@@ -2,6 +2,7 @@ package com.user.register.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.user.register.dto.LogoutResponse;
+import com.user.register.dto.SessionDto;
 import com.user.register.entity.UserSession;
 import com.user.register.entity.User;
 import com.user.register.repository.UserRepository;
@@ -61,6 +62,28 @@ public class SessionService {
                 request.getRemoteAddr(),
                 LocalDateTime.now()
         );
+    }
+    public List<SessionDto> logoutAllSessions(User user) {
+        List<UserSession> activeSessions = sessionRepository.findByUser(user)
+                .stream()
+                .filter(s -> s.getExpiresAt() == null || s.getExpiresAt().isAfter(LocalDateTime.now()))
+                .toList();
+
+        // Map to SessionDto
+        List<SessionDto> revokedSessions = activeSessions.stream()
+                .map(s -> new SessionDto(
+                        s.getId(),
+                        s.getDeviceInfo(),
+                        s.getIpAddress(),
+                        s.getCreatedAt(),
+                        user.getEmail()
+                ))
+                .toList();
+
+        // Delete sessions
+        sessionRepository.deleteAll(activeSessions);
+
+        return revokedSessions;
     }
 
     // Helper to get real client IP

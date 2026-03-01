@@ -85,4 +85,37 @@ public class SessionController {
                     .body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
+
+    @DeleteMapping("/sessions/all")
+    public ResponseEntity<ApiResponse<Object>> logoutAllSessions(HttpServletRequest request) {
+        try {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401)
+                        .body(new ApiResponse<>(false, "Missing or invalid Authorization header", null));
+            }
+
+            String token = authHeader.substring(7);
+            Long userId = Long.parseLong(jwtUtil.validateAccessTokenAndGetUserId(token));
+
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            List<SessionDto> revokedSessions = sessionService.logoutAllSessions(user);
+
+            // Build LogoutResponse exactly like your JSON example
+            LogoutResponse response = new LogoutResponse(
+                    user.getId(),
+                    revokedSessions.size(),
+                    revokedSessions,
+                    java.time.LocalDateTime.now()
+            );
+
+            return ResponseEntity.ok(new ApiResponse<>(true, "Logged out from all sessions successfully", response));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
 }

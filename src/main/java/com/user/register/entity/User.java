@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -14,7 +15,7 @@ import java.util.Date;
 @AllArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class User {
+public class  User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,6 +47,7 @@ public class User {
     private Role role = Role.STUDENT;
 
     private Boolean isInstructorApproved = false;
+    private LocalDateTime lastLogin;  // <-- add this
 
     private LocalDateTime updatedAt;
     private LocalDateTime lastLoginAt;
@@ -55,17 +57,17 @@ public class User {
         if (createdAt == null) createdAt = now;
         if (updatedAt == null) updatedAt = now;
     }
-
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
     // ✅ Timestamp for rate-limiting
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-
-
     public enum Status { PENDING_VERIFICATION, ACTIVE, LOCKED, SUSPENDED, DELETED }
-    public enum Role { STUDENT, INSTRUCTOR, ADMIN }
+    public enum Role { STUDENT, INSTRUCTOR, ADMIN}
 }
+
+
+
+
