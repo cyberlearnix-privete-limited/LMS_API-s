@@ -1,6 +1,7 @@
 package com.user.register.service;
 
 import com.user.register.dto.ApiResponse;
+import com.user.register.dto.InstructorApplyResponse;
 import com.user.register.dto.SessionDto;
 import com.user.register.dto.UserProfileResponse;
 import com.user.register.entity.User;
@@ -29,8 +30,7 @@ public class InstructorService {
         this.sessionRepository = sessionRepository;
         this.jwtUtil = jwtUtil;
     }
-
-    public UserProfileResponse applyForInstructor(HttpServletRequest request) {
+    public InstructorApplyResponse applyForInstructor(HttpServletRequest request) {
         // 1️⃣ Extract JWT
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -43,27 +43,14 @@ public class InstructorService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 3️⃣ Update role and status
-        user.setRole(User.Role.INSTRUCTOR);
-        user.setStatus(User.Status.PENDING_VERIFICATION);
+        // 3️⃣ Update applied role and application status
+        user.setAppliedRole(User.Role.INSTRUCTOR);
+        user.setApplicationStatus(User.ApplicationStatus.PENDING_VERIFICATION);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
-        // 4️⃣ Get active sessions
-        List<SessionDto> activeSessions = sessionRepository.findByUser(user)
-                .stream()
-                .filter(s -> s.getExpiresAt() == null || s.getExpiresAt().isAfter(LocalDateTime.now()))
-                .map(s -> new SessionDto(
-                        s.getId(),
-                        s.getDeviceInfo(),
-                        s.getIpAddress(),
-                        s.getCreatedAt(),
-                        user.getEmail()
-                ))
-                .collect(Collectors.toList());
-
-        // 5️⃣ Build detailed response
-        return new UserProfileResponse(
+        // 4️⃣ Build detailed response (no active sessions)
+        return new InstructorApplyResponse(
                 user.getId(),
                 decrypt(user.getFirstName()),
                 decrypt(user.getLastName()),
@@ -79,15 +66,14 @@ public class InstructorService {
                 user.getSkills(),
                 user.getFieldOfStudy(),
                 user.getHighestQualification(),
-                user.getRole().name(),
-                user.getStatus().name(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                user.getLastLogin(),
-                null
+                user.getRole() != null ? user.getRole().name() : null,                // role
+                user.getAppliedRole() != null ? user.getAppliedRole().name() : null,  // appliedRole
+                user.getApplicationStatus() != null ? user.getApplicationStatus().name() : null, // applicationStatus
+                user.getCreatedAt(),   // LocalDateTime
+                user.getUpdatedAt(),   // LocalDateTime
+                user.getLastLogin()   // LocalDateTime
         );
     }
-
     private String decrypt(String value) {
         if (value == null) return null;
         try {

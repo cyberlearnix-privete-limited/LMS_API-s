@@ -20,7 +20,6 @@ public class  User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String firstName;
     private String lastName;
     private String email;
@@ -40,12 +39,13 @@ public class  User {
     private String highestQualification;
     @Enumerated(EnumType.STRING)
     private Status status = Status.PENDING_VERIFICATION;
-
+    @Enumerated(EnumType.STRING)
+    private Role appliedRole; // INSTRUCTOR (temporary)
     private Integer failedLoginAttempts = 0;
-
+    @Enumerated(EnumType.STRING)
+    private ApplicationStatus applicationStatus;
     @Enumerated(EnumType.STRING)
     private Role role = Role.STUDENT;
-
     private Boolean isInstructorApproved = false;
     private LocalDateTime lastLogin;  // <-- add this
 
@@ -66,6 +66,11 @@ public class  User {
     private LocalDateTime createdAt = LocalDateTime.now();
     public enum Status { PENDING_VERIFICATION, ACTIVE, LOCKED, SUSPENDED, DELETED }
     public enum Role { STUDENT, INSTRUCTOR, ADMIN}
+    public enum ApplicationStatus {
+        PENDING_VERIFICATION,
+        APPROVED,
+        REJECTED
+    }
 }
 
 
