@@ -1,6 +1,7 @@
 package com.user.register.controller;
 
 import com.user.register.dto.ApiResponse;
+import com.user.register.dto.InstructorApplyResponse;
 import com.user.register.dto.UserProfileResponse;
 import com.user.register.service.InstructorService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,10 +20,11 @@ public class InstructorController {
     }
 
     @PostMapping("/apply")
-    public ResponseEntity<ApiResponse<UserProfileResponse>> applyForInstructor(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<InstructorApplyResponse>> applyForInstructor(HttpServletRequest request) {
+
         try {
             // call service method that returns detailed user info
-            UserProfileResponse responseData = instructorService.applyForInstructor(request);
+            InstructorApplyResponse responseData = instructorService.applyForInstructor(request);
 
             return ResponseEntity.ok(
                     new ApiResponse<>(

@@ -34,6 +34,5 @@ public class UserProfileResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastLogin;
-
     private List<SessionDto> activeSessions;
 }
