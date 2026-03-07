@@ -12,7 +12,6 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserProfileResponse {
-
     private Long userId;
     private String firstName;
     private String lastName;

@@ -31,4 +31,7 @@ public class UserResponseDTO {
     private String profilePhotoPath;  // file path
     private String status;
     private LocalDateTime createdAt;
+    private String ipAddress;
+    private String device;
+
 }

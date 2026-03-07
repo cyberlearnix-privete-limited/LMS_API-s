@@ -12,7 +12,10 @@ import com.user.register.security.JwtUtil;
 import com.user.register.service.RegistrationService;
 import com.user.register.service.SessionService;
 import com.user.register.service.TokenBlacklistService;
+import com.user.register.util.SecurityUtils;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -20,8 +23,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import jakarta.servlet.http.HttpServletRequest;
 
 import javax.imageio.ImageIO;
+import javax.security.auth.login.AccountLockedException;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -44,6 +49,9 @@ public class RegistrationController {
     private Object userId;
     private String token;
     private Object SessionService;
+    private JwtUtil jwtService;
+    private Object user;
+    private String encryptionKey;
 
     @PostMapping(value = "/upload/profile-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadProfilePhoto(@RequestParam("file") MultipartFile file) {
@@ -127,71 +135,82 @@ public class RegistrationController {
      * Register user and send OTP
      */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
+    public ResponseEntity<?> register(@RequestBody User user, HttpServletRequest request) {
         try {
+
             // Force role to STUDENT
             user.setRole(User.Role.STUDENT);
             user.setIsInstructorApproved(false);
 
-            // ✅ Ensure profile photo is set if provided
+            // Ensure profile photo is set if provided
             if (user.getProfilePhoto() != null && !user.getProfilePhoto().isBlank()) {
                 user.setProfilePhoto(user.getProfilePhoto());
             }
 
-            User savedUser = registrationService.register(user);
+            // Pass request to service
+            User savedUser = registrationService.register(user, request);
+
             ApiResponse<User> response = new ApiResponse<>(
                     true,
                     "User registered successfully. OTP has been sent to email.",
                     savedUser,
                     LocalDateTime.now()
             );
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
+
+            // 201 → resource created
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (IllegalArgumentException e) {
+
             ApiResponse<Object> response = new ApiResponse<>(
                     false,
                     e.getMessage(),
                     null,
                     LocalDateTime.now()
             );
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
 
-    /**
-     * Apply for instructor role
-     */
-    @PostMapping("/instructors/apply")
-    public ResponseEntity<?> applyInstructor(@RequestBody User user) {
-        try {
-            // Force role to INSTRUCTOR and set approval false
-            user.setRole(User.Role.INSTRUCTOR);
-            user.setIsInstructorApproved(false);
-            User savedUser = registrationService.register(user);
-            ApiResponse<User> response = new ApiResponse<>(
-                    true,
-                    "Instructor application submitted. Please wait for admin approval.",
-                    savedUser,
-                    LocalDateTime.now()
-            );
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
+            // 400 → validation error
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
+        } catch (RuntimeException e) {
+
             ApiResponse<Object> response = new ApiResponse<>(
                     false,
                     e.getMessage(),
                     null,
                     LocalDateTime.now()
             );
-            return ResponseEntity.badRequest().body(response);
+
+            // 409 → conflict (email/mobile already exists)
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+
+        } catch (Exception e) {
+
+            ApiResponse<Object> response = new ApiResponse<>(
+                    false,
+                    "Internal server error",
+                    null,
+                    LocalDateTime.now()
+            );
+
+            // 500 → server error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
     @PostMapping("/verify-email")
-    public ResponseEntity<?> verifyEmail(@RequestParam String email, @RequestParam String otp) {
+    public ResponseEntity<?> verifyEmail(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        String email = body.get("email");
+        String otp = body.get("otp");
+
         try {
-            Map<String, Object> response = registrationService.verifyOTP(email, otp);
-            return ResponseEntity.ok(response); // OTP correct → 200
+            // Call service, passing request to detect device/browser/os
+            Map<String, Object> response = registrationService.verifyOTP(email, otp, request);
+
+            // OTP correct → 200 OK
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
         } catch (InvalidOtpException ex) {
-            // Wrong OTP → 400 with remaining attempts & expiry
+            // Wrong OTP → 400 BAD_REQUEST
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", ex.getMessage());
@@ -200,61 +219,164 @@ public class RegistrationController {
                     "expiresInSeconds", ex.getSecondsUntilExpiry()
             ));
             errorResponse.put("timestamp", LocalDateTime.now());
+
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+
         } catch (RuntimeException e) {
-            // OTP expired, locked account, etc.
+            // Runtime errors → map message to HTTP status
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", e.getMessage());
+            errorResponse.put("data", Map.of(
+                    "remainingAttempts", 0,
+                    "expiresInSeconds", 0
+            ));
             errorResponse.put("timestamp", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+
+            String msg = e.getMessage().toLowerCase();
+            HttpStatus status;
+
+            if (msg.contains("locked")) {
+                status = HttpStatus.LOCKED; // 423
+            } else if (msg.contains("suspended")) {
+                status = HttpStatus.FORBIDDEN; // 403
+            } else if (msg.contains("not found")) {
+                status = HttpStatus.NOT_FOUND; // 404
+            } else if (msg.contains("expired")) {
+                status = HttpStatus.BAD_REQUEST; // 400
+            } else {
+                status = HttpStatus.INTERNAL_SERVER_ERROR; // 500
+            }
+
+            return ResponseEntity.status(status).body(errorResponse);
         }
     }
     @PostMapping("/login/password")
-    public ResponseEntity<?> loginWithPassword(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> loginWithPassword(@RequestBody LoginRequest request,
+                                               HttpServletRequest httpRequest,
+                                               HttpServletResponse httpResponse) {
+
         try {
-            // Call service to handle login
-            LoginResponse loginResponse = registrationService.loginWithPassword(request);
-            // 2️⃣ Fetch user from DB
+
+            // 1️⃣ Authenticate user
+            registrationService.loginWithPassword(request);
+
+            // 2️⃣ Fetch user
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 3️⃣ Save session
+            // 3️⃣ Generate tokens
+            String accessToken = jwtService.generateAccessToken(user.getEmail());
+            String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+
+            // 4️⃣ Get device + IP
+            String deviceInfo = httpRequest.getHeader("User-Agent");
+            String ipAddress = httpRequest.getRemoteAddr();
+
+            // 5️⃣ Save session
             UserSession session = UserSession.builder()
                     .user(user)
-                    .deviceInfo(String.valueOf(httpRequest.getHeader("User-Agent"))) // ✅ correct
-                    .token(loginResponse.getAccessToken()) // store JWT
-                    .expiresAt(LocalDateTime.now().plusDays(7)) // set expiry
+                    .token(accessToken)
+                    .token(refreshToken)
+                    .deviceInfo(deviceInfo)
+                    .ipAddress(ipAddress)
+                    .expiresAt(LocalDateTime.now().plusDays(30))
                     .build();
+
             sessionRepository.save(session);
 
+            // 6️⃣ Refresh token cookie
+            Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+            refreshCookie.setHttpOnly(true);
+            refreshCookie.setSecure(true);
+            refreshCookie.setPath("/");
+            refreshCookie.setMaxAge(30 * 24 * 60 * 60);
+
+            httpResponse.addCookie(refreshCookie);
+
+            // 7️⃣ Prepare encrypted response
+            LoginResponse responseData = new LoginResponse();
+
+            responseData.setAccessToken(accessToken);
+            responseData.setRefreshToken(refreshToken);
+            responseData.setExpiresInSeconds(900);
+
+            responseData.setUserId(user.getId());
+
+            responseData.setEmail(SecurityUtils.encrypt(user.getEmail(), encryptionKey));
+            responseData.setFirstName(SecurityUtils.encrypt(user.getFirstName(), encryptionKey));
+            responseData.setLastName(SecurityUtils.encrypt(user.getLastName(), encryptionKey));
+            responseData.setMobile(SecurityUtils.encrypt(user.getMobile(), encryptionKey));
+
+            responseData.setDob(SecurityUtils.encrypt(user.getDob(), encryptionKey));
+            responseData.setProfilePhoto(SecurityUtils.encrypt(user.getProfilePhoto(), encryptionKey));
+            responseData.setCity(SecurityUtils.encrypt(user.getCity(), encryptionKey));
+            responseData.setState(SecurityUtils.encrypt(user.getState(), encryptionKey));
+            responseData.setCountry(SecurityUtils.encrypt(user.getCountry(), encryptionKey));
+            responseData.setOrganization(SecurityUtils.encrypt(user.getOrganization(), encryptionKey));
+
+            responseData.setPreferredLanguage(SecurityUtils.encrypt(user.getPreferredLanguage(), encryptionKey));
+            responseData.setSkills(SecurityUtils.encrypt(user.getSkills(), encryptionKey));
+            responseData.setFieldOfStudy(SecurityUtils.encrypt(user.getFieldOfStudy(), encryptionKey));
+            responseData.setHighestQualification(SecurityUtils.encrypt(user.getHighestQualification(), encryptionKey));
+
+            responseData.setRole(SecurityUtils.encrypt(user.getRole().name(), encryptionKey));
+            responseData.setStatus(SecurityUtils.encrypt(user.getStatus().name(), encryptionKey));
+
+            responseData.setLoginDevice(SecurityUtils.encrypt(deviceInfo, encryptionKey));
+            responseData.setLoginIp(SecurityUtils.encrypt(ipAddress, encryptionKey));
+
+            responseData.setLastLoginAt(LocalDateTime.now());
+            responseData.setSessionId(String.valueOf(session.getId()));
+
+            // 8️⃣ API Response
             ApiResponse<LoginResponse> response = new ApiResponse<>(
                     true,
                     "Login successful",
-                    loginResponse,
+                    responseData,
                     LocalDateTime.now()
             );
-           
-            return ResponseEntity.ok(response);
 
-        } catch (LoginFailedException ex) {
-            // Catch failed login attempts to return detailed info
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+
+        }
+
+        catch (LoginFailedException ex) {
+
             ApiResponse<Object> response = new ApiResponse<>(
                     false,
                     ex.getMessage(),
-                    ex.getDetails(), // remainingAttempts & accountStatus
+                    ex.getDetails(),
                     LocalDateTime.now()
             );
-            return ResponseEntity.status(401).body(response); // 401 Unauthorized
-        } catch (RuntimeException e) {
-            // Other exceptions
+
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+
+        catch (AccountLockedException ex) {
+
+            ApiResponse<Object> response = new ApiResponse<>(
+                    false,
+                    "Account locked due to multiple failed login attempts",
+                    null,
+                    LocalDateTime.now()
+            );
+
+            return ResponseEntity.status(HttpStatus.LOCKED).body(response);
+        }
+
+        catch (RuntimeException e) {
+
             ApiResponse<Object> response = new ApiResponse<>(
                     false,
                     e.getMessage(),
                     null,
                     LocalDateTime.now()
             );
-            return ResponseEntity.status(400).body(response); // 400 Bad Request
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

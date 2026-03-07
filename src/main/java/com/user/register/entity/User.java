@@ -2,6 +2,7 @@ package com.user.register.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ public class  User {
     private String email;
     private String password;
     @Transient
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String confirmPassword;
     private String mobile;
     private String dob;
@@ -48,9 +50,13 @@ public class  User {
     private Role role = Role.STUDENT;
     private Boolean isInstructorApproved = false;
     private LocalDateTime lastLogin;  // <-- add this
-
     private LocalDateTime updatedAt;
     private LocalDateTime lastLoginAt;
+    private String ipAddress;
+    private String device;
+    private String browser;
+    private String os;
+    private String userAgent;
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

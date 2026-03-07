@@ -17,7 +17,7 @@ public class OTPCode {
 
     @ManyToOne
     private User user;
-
+    private int remainingAttempts = 5; // default 5 attempts
     private String otp;
     private String type; // registration, password_reset, login
     private LocalDateTime expiresAt;

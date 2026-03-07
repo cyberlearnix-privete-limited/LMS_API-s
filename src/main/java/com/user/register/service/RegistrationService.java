@@ -16,6 +16,7 @@ import com.user.register.repository.UserSessionRepository;
 import com.user.register.security.JwtUtil;
 import com.user.register.util.SecurityUtils;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+
+import static aQute.bnd.annotation.headers.Category.device;
 
 @Service
 @RequiredArgsConstructor
@@ -55,10 +58,29 @@ public class RegistrationService {
     private static final int MAX_OTP_ATTEMPTS = 5;
     private Object newAccessToken;
     private String accessToken;
+    public User register(User user, HttpServletRequest request) throws Exception {
 
-    public User register(User user) throws Exception {
+        // ================= GET CLIENT IP =================
+        String ipAddress = request.getHeader("X-Forwarded-For");
+
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getRemoteAddr();
+        }
+
+        // ================= DEVICE + BROWSER + OS =================
+        String userAgent = request.getHeader("User-Agent");
+
+        String device = detectDevice(userAgent);
+        String browser = detectBrowser(userAgent);
+        String os = detectOS(userAgent);
+
+        if (device == null || device.isEmpty()) {
+            device = "Unknown Device";
+        }
+
         // ================= RATE LIMIT CHECK =================
         LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+
         long recentRegistrations = userRepository.countByEmailOrMobileAndCreatedAtAfter(
                 user.getEmail(),
                 SecurityUtils.encrypt(user.getMobile(), encryptionKey),
@@ -68,24 +90,34 @@ public class RegistrationService {
         if (recentRegistrations >= 3) {
             throw new RuntimeException("Rate limit exceeded: You can only register 3 times per hour.");
         }
-// 2️⃣ Check password strength
-        // ===============================================
+
+        // ================= PASSWORD VALIDATION =================
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            throw new RuntimeException("Password is required");
+        }
+
+        if (user.getConfirmPassword() == null || user.getConfirmPassword().isEmpty()) {
+            throw new RuntimeException("Confirm Password is required");
+        }
+
         if (!user.getPassword().equals(user.getConfirmPassword())) {
             throw new RuntimeException("Password and Confirm Password do not match");
         }
 
         if (!isPasswordStrong(user.getPassword())) {
-            throw new RuntimeException("Password is too weak. It must be at least 8 characters, " +
-                    "contain uppercase, lowercase, number, and special character.");
+            throw new RuntimeException(
+                    "Password is too weak. It must be at least 8 characters, contain uppercase, lowercase, number, and special character.");
         }
 
-        // <<< END OF PASSWORD CHECKS >>>
-        // <<< ADD MOBILE NUMBER CHECK RIGHT AFTER PASSWORD CHECKS >>>
+        // ================= MOBILE CHECK =================
         String encryptedMobile = SecurityUtils.encrypt(user.getMobile(), encryptionKey);
+
         Optional<User> userWithMobile = userRepository.findByMobile(encryptedMobile);
+
         if (userWithMobile.isPresent() && userWithMobile.get().getStatus() == User.Status.ACTIVE) {
             throw new RuntimeException("Mobile number already registered");
         }
+
         Optional<User> existingUserOpt = userRepository.findByEmail(user.getEmail());
 
         // ================= EXISTING USER =================
@@ -93,15 +125,12 @@ public class RegistrationService {
 
             User existingUser = existingUserOpt.get();
 
-            // If already ACTIVE → block
             if (existingUser.getStatus() == User.Status.ACTIVE) {
                 throw new RuntimeException("Email already registered");
             }
 
-            // If PENDING_VERIFICATION → UPDATE profile photo + resend OTP
             if (existingUser.getStatus() == User.Status.PENDING_VERIFICATION) {
 
-                // ✅ Update profile photo if provided
                 if (user.getProfilePhoto() != null && !user.getProfilePhoto().isBlank()) {
                     existingUser.setProfilePhoto(user.getProfilePhoto());
                 }
@@ -109,7 +138,6 @@ public class RegistrationService {
                 userRepository.save(existingUser);
 
                 String otp = generateOTP();
-                System.out.println("Resent OTP for testing: " + otp);
 
                 OTPCode otpCode = OTPCode.builder()
                         .user(existingUser)
@@ -122,7 +150,7 @@ public class RegistrationService {
 
                 otpRepository.save(otpCode);
 
-                sendOtpEmail(existingUser.getEmail(), otp, "Password Reset OTP");
+                sendOtpEmail(existingUser.getEmail(), otp, "Registration OTP");
 
                 return existingUser;
             }
@@ -130,7 +158,6 @@ public class RegistrationService {
 
         // ================= NEW USER =================
 
-        // Encrypt sensitive fields
         user.setFirstName(SecurityUtils.encrypt(user.getFirstName(), encryptionKey));
         user.setLastName(SecurityUtils.encrypt(user.getLastName(), encryptionKey));
         user.setMobile(SecurityUtils.encrypt(user.getMobile(), encryptionKey));
@@ -143,20 +170,46 @@ public class RegistrationService {
             user.setOrganization(SecurityUtils.encrypt(user.getOrganization(), encryptionKey));
         }
 
-        // Hash password
+        if (user.getProfilePhoto() != null) {
+            user.setProfilePhoto(SecurityUtils.encrypt(user.getProfilePhoto(), encryptionKey));
+        }
+
+        if (user.getPreferredLanguage() != null) {
+            user.setPreferredLanguage(SecurityUtils.encrypt(user.getPreferredLanguage(), encryptionKey));
+        }
+
+        if (user.getSkills() != null) {
+            user.setSkills(SecurityUtils.encrypt(user.getSkills(), encryptionKey));
+        }
+
+        if (user.getFieldOfStudy() != null) {
+            user.setFieldOfStudy(SecurityUtils.encrypt(user.getFieldOfStudy(), encryptionKey));
+        }
+
+        if (user.getHighestQualification() != null) {
+            user.setHighestQualification(SecurityUtils.encrypt(user.getHighestQualification(), encryptionKey));
+        }
+
+        // ================= PASSWORD HASH =================
         user.setPassword(SecurityUtils.hashPassword(user.getPassword()));
 
+        // ================= USER STATUS =================
         user.setStatus(User.Status.PENDING_VERIFICATION);
         user.setRole(User.Role.STUDENT);
         user.setIsInstructorApproved(false);
 
-        // ✅ profilePhoto already set from request (no need to re-set)
+        // ================= SAVE DEVICE INFO =================
+        user.setIpAddress(ipAddress);
+        user.setDevice(device);
+        user.setBrowser(browser);
+        user.setOs(os);
+        user.setUserAgent(userAgent);
 
+        // ================= SAVE USER =================
         User savedUser = userRepository.save(user);
 
-        // Generate OTP
+        // ================= GENERATE OTP =================
         String otp = generateOTP();
-        System.out.println("Generated OTP for testing: " + otp);
 
         OTPCode otpCode = OTPCode.builder()
                 .user(savedUser)
@@ -169,17 +222,103 @@ public class RegistrationService {
 
         otpRepository.save(otpCode);
 
-        // Audit log
+        // ================= AUDIT LOG =================
         auditLogRepository.save(AuditLog.builder()
                 .user(savedUser)
                 .action("REGISTER")
-                .ipAddress("N/A")
+                .ipAddress(ipAddress)
+                .device(device)
                 .createdAt(LocalDateTime.now())
                 .build());
 
-        sendOtpEmail(savedUser.getEmail(), otp, "Password Reset OTP");
+        sendOtpEmail(savedUser.getEmail(), otp, "Registration OTP");
 
         return savedUser;
+    }
+
+    private String detectDevice(String userAgent) {
+
+        if (userAgent == null)
+            return "Unknown Device";
+
+        userAgent = userAgent.toLowerCase();
+
+        // Postman
+        if (userAgent.contains("postmanruntime") || userAgent.contains("postman"))
+            return "Postman";
+
+        // Mobile
+        if (userAgent.contains("android"))
+            return "Android Mobile";
+
+        if (userAgent.contains("iphone"))
+            return "iPhone";
+
+        if (userAgent.contains("ipad"))
+            return "iPad";
+
+        // Desktop
+        if (userAgent.contains("windows"))
+            return "Windows Desktop";
+
+        if (userAgent.contains("mac"))
+            return "Mac Desktop";
+
+        if (userAgent.contains("linux"))
+            return "Linux Desktop";
+
+
+        return "Unknown Device";
+    }
+    private String detectBrowser(String userAgent) {
+
+        if (userAgent == null) return "Unknown Browser";
+
+        userAgent = userAgent.toLowerCase();
+
+        if (userAgent.contains("postman"))
+            return "Postman";
+
+        if (userAgent.contains("chrome"))
+            return "Chrome";
+
+        if (userAgent.contains("firefox"))
+            return "Firefox";
+
+        if (userAgent.contains("safari"))
+            return "Safari";
+
+        if (userAgent.contains("edge"))
+            return "Edge";
+
+        return "Unknown Browser";
+    }
+    private String detectOS(String userAgent) {
+
+        if (userAgent == null)
+            return "Unknown OS";
+
+        userAgent = userAgent.toLowerCase();
+
+        if (userAgent.contains("postmanruntime") || userAgent.contains("postman"))
+            return "Development Environment";
+
+        if (userAgent.contains("android"))
+            return "Android";
+
+        if (userAgent.contains("iphone") || userAgent.contains("ios"))
+            return "iOS";
+
+        if (userAgent.contains("windows"))
+            return "Windows";
+
+        if (userAgent.contains("mac"))
+            return "MacOS";
+
+        if (userAgent.contains("linux"))
+            return "Linux";
+
+        return "Unknown OS";
     }
 
     /**
@@ -288,26 +427,23 @@ public class RegistrationService {
         // 9️⃣ Return public URL
         return "http://localhost:8080/uploads/" + fileName;
     }
-
-    public Map<String, Object> verifyOTP(String email, String otp) {
-
+    public Map<String, Object> verifyOTP(String email, String otp, HttpServletRequest request){
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (user.getStatus() == User.Status.LOCKED)
-            throw new RuntimeException("Account locked due to failed OTP attempts");
+            return buildOtpResponse(false, "Account locked due to failed OTP attempts", 0, 0);
 
         if (user.getStatus() == User.Status.SUSPENDED)
-            throw new RuntimeException("Account suspended");
+            return buildOtpResponse(false, "Account suspended", 0, 0);
 
-        // Get latest registration OTP
-        OTPCode code = (OTPCode) otpRepository
-                .findTopByUserAndTypeOrderByCreatedAtDesc(user, "registration")
+        OTPCode code = otpRepository.findTopByUserAndTypeOrderByCreatedAtDesc(user, "registration")
                 .orElseThrow(() -> new RuntimeException("Invalid OTP"));
 
-        // Expiry check
-        if (code.getExpiresAt().isBefore(LocalDateTime.now()))
-            throw new RuntimeException("OTP expired");
+        // Check expiry
+        long secondsToExpire = Duration.between(LocalDateTime.now(), code.getExpiresAt()).getSeconds();
+        if (secondsToExpire <= 0)
+            return buildOtpResponse(false, "OTP expired", 0, 0);
 
         // Increment attempts
         int attempts = code.getAttempts() + 1;
@@ -318,36 +454,64 @@ public class RegistrationService {
         if (attempts > 5) {
             user.setStatus(User.Status.LOCKED);
             userRepository.save(user);
-            throw new RuntimeException("Too many failed OTP attempts. Account locked.");
+            return buildOtpResponse(false, "Too many failed OTP attempts. Account locked.", 0, 0);
         }
 
-        // ❌ OTP mismatch → throw exception instead of returning Map
+        // OTP mismatch → decrease remainingAttempts
         if (!code.getOtp().equals(otp)) {
-            long secondsToExpire = Duration.between(LocalDateTime.now(), code.getExpiresAt()).getSeconds();
-            throw new InvalidOtpException("Invalid OTP", 5 - attempts, secondsToExpire);
+            int remainingAttempts = 5 - attempts;
+            return buildOtpResponse(false, "Invalid OTP", remainingAttempts, secondsToExpire);
         }
 
-        // ✅ OTP correct → success
+        // OTP correct → success
         user.setStatus(User.Status.ACTIVE);
         userRepository.save(user);
         otpRepository.delete(code);
 
+        // ===== Device Detection =====
+        String userAgent = request.getHeader("User-Agent");
+        String ipAddress = request.getRemoteAddr();
+
+        String device = detectDevice(userAgent);
+        String browser = detectBrowser(userAgent);
+        String os = detectOS(userAgent);
         auditLogRepository.save(AuditLog.builder()
                 .user(user)
                 .action("VERIFY_OTP_SUCCESS")
-                .ipAddress("N/A")
                 .createdAt(LocalDateTime.now())
                 .build());
 
+        Map<String, Object> successData = new HashMap<>();
+        successData.put("userId", user.getId());
+        successData.put("firstName", user.getFirstName());
+        successData.put("lastName", user.getLastName());
+        successData.put("email", user.getEmail());
+        // add other safe fields as needed
+        successData.put("device", device);
+        successData.put("browser", browser);
+        successData.put("os", os);
+        successData.put("ipAddress", ipAddress);
         Map<String, Object> successResponse = new HashMap<>();
         successResponse.put("success", true);
-        successResponse.put("message", "Email verified successfully");
-        successResponse.put("data", user);
+        successResponse.put("message", "OTP verified successfully");
+        successResponse.put("data", successData);
         successResponse.put("timestamp", LocalDateTime.now());
 
         return successResponse;
     }
 
+    // Helper method to build OTP error response
+    private Map<String, Object> buildOtpResponse(boolean success, String message, int remainingAttempts, long expiresInSeconds) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", success);
+        response.put("message", message);
+        response.put("timestamp", LocalDateTime.now());
+        response.put("data", Map.of(
+                "remainingAttempts", remainingAttempts,
+                "expiresInSeconds", expiresInSeconds
+        ));
+        return response;
+    }
     /**
      * Fetch user by email
      */
@@ -436,6 +600,8 @@ public class RegistrationService {
                 .createdAt(LocalDateTime.now())
                 .build());
         LoginResponse response = new LoginResponse();
+        response.setAccessToken(accessToken);
+        response.setExpiresInSeconds(900);
         response.setUserId(user.getId());
         response.setEmail(user.getEmail());
         response.setFirstName(user.getFirstName());
@@ -574,6 +740,8 @@ public class RegistrationService {
 
         LoginResponse response = new LoginResponse();
         response.setAccessToken(accessToken);
+        response.setExpiresInSeconds(900);
+        response.setAccessToken(accessToken);
         response.setRefreshToken(refreshToken);
         response.setTokenType("Bearer");
         response.setAccessTokenExpiresInMinutes(15L);
@@ -613,6 +781,9 @@ public class RegistrationService {
         String newAccessToken = jwtUtil.generateAccessToken(userId);
 
         LoginResponse response = new LoginResponse();
+
+        response.setAccessToken(accessToken);
+        response.setExpiresInSeconds(900);
         response.setUserId(user.getId());
         response.setEmail(user.getEmail());
         response.setAccessToken(newAccessToken);
