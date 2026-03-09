@@ -1,7 +1,6 @@
 package com.user.register.controller;
 
 import com.user.register.dto.*;
-import com.user.register.entity.OTPCode;
 import com.user.register.entity.User;
 import com.user.register.entity.UserSession;
 import com.user.register.exception.InvalidOtpException;
@@ -10,7 +9,6 @@ import com.user.register.repository.UserRepository;
 import com.user.register.repository.UserSessionRepository;
 import com.user.register.security.JwtUtil;
 import com.user.register.service.RegistrationService;
-import com.user.register.service.SessionService;
 import com.user.register.service.TokenBlacklistService;
 import com.user.register.util.SecurityUtils;
 import jakarta.servlet.http.Cookie;
@@ -22,8 +20,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
-import jakarta.servlet.http.HttpServletRequest;
 
 import javax.imageio.ImageIO;
 import javax.security.auth.login.AccountLockedException;
@@ -198,19 +194,24 @@ public class RegistrationController {
         }
     }
     @PostMapping("/verify-email")
-    public ResponseEntity<?> verifyEmail(@RequestBody Map<String, String> body, HttpServletRequest request) {
+    public ResponseEntity<?> verifyEmail(
+            @RequestBody Map<String, String> body,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
         String email = body.get("email");
         String otp = body.get("otp");
 
         try {
-            // Call service, passing request to detect device/browser/os
-            Map<String, Object> response = registrationService.verifyOTP(email, otp, request);
 
-            // OTP correct → 200 OK
-            return ResponseEntity.status(HttpStatus.OK).body(response);
+            // Call service (pass response for cookies)
+
+            ResponseEntity<Map<String, Object>> serviceResponse =
+                    registrationService.verifyOTP(email, otp, request, response);
+            return serviceResponse;
 
         } catch (InvalidOtpException ex) {
-            // Wrong OTP → 400 BAD_REQUEST
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", ex.getMessage());
@@ -223,7 +224,7 @@ public class RegistrationController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
 
         } catch (RuntimeException e) {
-            // Runtime errors → map message to HTTP status
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", e.getMessage());
@@ -267,7 +268,7 @@ public class RegistrationController {
 
             // 3️⃣ Generate tokens
             String accessToken = jwtService.generateAccessToken(user.getEmail());
-            String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+            String refreshToken = jwtService.generateRefreshToken(user, user.getEmail());
 
             // 4️⃣ Get device + IP
             String deviceInfo = httpRequest.getHeader("User-Agent");

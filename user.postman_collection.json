@@ -1,0 +1,1833 @@
+{
+  "info": {
+    "_postman_id": "d1ad64b8-2523-4755-b666-0defbff3a585",
+    "name": "user",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51415985",
+    "_collection_link": "https://go.postman.co/collection/51415985-d1ad64b8-2523-4755-b666-0defbff3a585?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "register",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"firstName\": \"Thangedipally\",\r\n  \"lastName\": \"jashu\",\r\n  \"email\": \"nniyanch@gmail.com\",\r\n  \"password\": \"@Jashu_12\",\r\n  \"confirmPassword\":\"@Jashu_12\",\r\n  \"mobile\": \"9948330345\",\r\n  \"dob\": \"2009-09-12\",\r\n   \"profilePhoto\": \"http://localhost:8080/uploads/d0c8b7e8-812b-4295-8dcc-02c600a6a748.jpg\",\r\n  \"city\": \"hyderabad\",\r\n  \"state\": \"Telangana\",\r\n  \"country\": \"India\",\r\n  \"preferredLanguage\": \"English,Telugu\",\r\n  \"organization\": \"mycompany\",\r\n  \"skills\": \"java\",\r\n  \"fieldOfStudy\": \"Computer Science Engineering\",\r\n  \"highestQualification\": \"Bachelor's Degree\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8089/auth/register",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "auth",
+            "register"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "register",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"firstName\": \"thangedipally\",\r\n  \"lastName\": \"thanu\",\r\n  \"email\": \"thanujathanuja211@gmail.com\",\r\n  \"password\": \"121132143\",\r\n  \"mobile\": \"9876210234\",\r\n  \"dob\": \"2005-05-05\",\r\n   \"profilePhoto\": \"http://localhost:8080/uploads/a89d0d65-80ff-4f58-839d-dbe050047c83.jpg\",\r\n  \"city\": \"hyderabad\",\r\n  \"state\": \"Telangana\",\r\n  \"country\": \"India\",\r\n  \"preferredLanguage\": \"English\",\r\n  \"organization\": \"mycompany\",\r\n  \"skills\": \"Java\",\r\n  \"fieldOfStudy\": \"Computer Science\",\r\n  \"highestQualification\": \"Bachelor's Degree\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 24 Feb 2026 15:33:29 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"message\": \"User registered successfully. OTP has been sent to email.\",\n    \"data\": {\n        \"id\": 2,\n        \"firstName\": \"atliwWOHT77yWps9ZAA/yg==\",\n        \"lastName\": \"9eSyxtPi0pxVz/lkGGpS9w==\",\n        \"email\": \"thanujathanuja211@gmail.com\",\n        \"password\": \"$2a$10$2s/Rvw6rmPhyZszYuiCVBORMe/rSlvx5qeyvS3mz8Px4aya01.QYW\",\n        \"mobile\": \"DXDVWz7iN2ze+JW3LaGqqQ==\",\n        \"dob\": \"AYBIGaOsGVvDvXTr2GwkAA==\",\n        \"profilePhoto\": \"http://localhost:8080/uploads/a89d0d65-80ff-4f58-839d-dbe050047c83.jpg\",\n        \"city\": \"hXsYEUm9TgDxW1Bwgrkbwg==\",\n        \"state\": \"frAKvbNmFhFbszi+i8Du6A==\",\n        \"country\": \"vspGVC0pcDKDKFWSXMYCXg==\",\n        \"preferredLanguage\": \"English\",\n        \"organization\": \"GhySt7w9ZsZt6GAzY/gVLg==\",\n        \"skills\": \"Java\",\n        \"fieldOfStudy\": \"Computer Science\",\n        \"highestQualification\": \"Bachelor's Degree\",\n        \"status\": \"PENDING_VERIFICATION\",\n        \"role\": \"STUDENT\",\n        \"isInstructorApproved\": false\n    },\n    \"timestamp\": \"2026-02-24T21:03:29.0246044\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "verify otp",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8089/auth/verify-email?email=nniyanch@gmail.com&otp=933489",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "auth",
+            "verify-email"
+          ],
+          "query": [
+            {
+              "key": "email",
+              "value": "nniyanch@gmail.com"
+            },
+            {
+              "key": "otp",
+              "value": "933489"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "verify otp",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8089/auth/verify-email?email=thanujathanuja211@gmail.com&otp=923920",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "verify-email"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "thanujathanuja211@gmail.com"
+                },
+                {
+                  "key": "otp",
+                  "value": "923920"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 24 Feb 2026 16:01:30 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": {\n        \"id\": 1,\n        \"firstName\": \"atliwWOHT77yWps9ZAA/yg==\",\n        \"lastName\": \"9eSyxtPi0pxVz/lkGGpS9w==\",\n        \"email\": \"thanujathanuja211@gmail.com\",\n        \"password\": \"$2a$10$Y6AfhalcsrpfjdNjxcdn5.//ktojRNnwn0Hrs/XMbHyNViIbhrTfy\",\n        \"mobile\": \"DXDVWz7iN2ze+JW3LaGqqQ==\",\n        \"dob\": \"AYBIGaOsGVvDvXTr2GwkAA==\",\n        \"profilePhoto\": \"http://localhost:8080/uploads/a89d0d65-80ff-4f58-839d-dbe050047c83.jpg\",\n        \"city\": \"hXsYEUm9TgDxW1Bwgrkbwg==\",\n        \"state\": \"frAKvbNmFhFbszi+i8Du6A==\",\n        \"country\": \"vspGVC0pcDKDKFWSXMYCXg==\",\n        \"preferredLanguage\": \"English\",\n        \"organization\": \"GhySt7w9ZsZt6GAzY/gVLg==\",\n        \"skills\": \"Java\",\n        \"fieldOfStudy\": \"Computer Science\",\n        \"highestQualification\": \"Bachelor's Degree\",\n        \"status\": \"ACTIVE\",\n        \"role\": \"STUDENT\",\n        \"isInstructorApproved\": false\n    },\n    \"success\": true,\n    \"message\": \"Email verified successfully\",\n    \"timestamp\": \"2026-02-24T21:31:30.2792729\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "login/psw",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"nniyanch@gmail.com\",\r\n  \"password\": \"@Jashu_12\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8089/auth/login/password",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "auth",
+            "login",
+            "password"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "login/psw",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"thanujathanuja211@gmail.com\",\r\n  \"password\": \"121132143\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/login/password",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "login",
+                "password"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 24 Feb 2026 17:20:00 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"message\": \"Login successful\",\n    \"data\": {\n        \"userId\": 1,\n        \"email\": \"thanujathanuja211@gmail.com\",\n        \"firstName\": \"atliwWOHT77yWps9ZAA/yg==\",\n        \"lastName\": \"9eSyxtPi0pxVz/lkGGpS9w==\",\n        \"mobile\": \"DXDVWz7iN2ze+JW3LaGqqQ==\",\n        \"dob\": \"AYBIGaOsGVvDvXTr2GwkAA==\",\n        \"profilePhoto\": \"http://localhost:8080/uploads/a89d0d65-80ff-4f58-839d-dbe050047c83.jpg\",\n        \"city\": \"hXsYEUm9TgDxW1Bwgrkbwg==\",\n        \"state\": \"frAKvbNmFhFbszi+i8Du6A==\",\n        \"country\": \"vspGVC0pcDKDKFWSXMYCXg==\",\n        \"organization\": \"GhySt7w9ZsZt6GAzY/gVLg==\",\n        \"preferredLanguage\": \"English\",\n        \"skills\": \"Java\",\n        \"fieldOfStudy\": \"Computer Science\",\n        \"highestQualification\": \"Bachelor's Degree\",\n        \"role\": \"STUDENT\",\n        \"status\": \"ACTIVE\",\n        \"isInstructorApproved\": false,\n        \"failedLoginAttempts\": 0,\n        \"createdAt\": \"2026-02-24T22:27:37.574059\",\n        \"updatedAt\": \"2026-02-24T22:49:59.8729336\",\n        \"lastLoginAt\": \"2026-02-24T22:50:00.1186057\",\n        \"loginDevice\": \"Web\",\n        \"loginIp\": \"N/A\",\n        \"sessionId\": \"08c72a55-8201-454e-8443-93739249912a\",\n        \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJlZjk5ZmFkYS0wYTYxLTQzM2UtYTM5Ni0zMmNiNjZjNTkyYzMiLCJzdWIiOiIxIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3MTk1MzU5OSwiZXhwIjoxNzcxOTU0NDk5fQ.aiYj2hF_eMzNSajdc3bQQEjD96Xf3GX8v94QNklToFc\",\n        \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIzZWI4ZWU3Ni02Y2ZkLTRjODYtODgxMC03M2Q2YjY4MGEzMjUiLCJzdWIiOiIxIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NzE5NTM2MDAsImV4cCI6MTc3NDU0NTYwMH0.Bekquk8ifcSdhh-u2gihBD0BdOgDs-Sn-XQnL2p71Ts\",\n        \"expiresInSeconds\": 900\n    },\n    \"timestamp\": \"2026-02-24T22:50:00.1186057\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "login/otp/request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/auth/login/otp/request",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "auth",
+            "login",
+            "otp",
+            "request"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "login/otp/request",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"tthangedipallymanasa@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/login/otp/request",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "login",
+                "otp",
+                "request"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 26 Feb 2026 13:31:54 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"message\": \"Login OTP sent successfully to registered email.\",\n    \"data\": {\n        \"validForMinutes\": 5,\n        \"otpType\": \"login\",\n        \"email\": \"tthangedipallymanasa@gmail.com\",\n        \"expiresAt\": \"2026-02-26T19:06:49.1388849\",\n        \"cooldownSeconds\": 30\n    },\n    \"timestamp\": \"2026-02-26T19:01:54.7898837\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "login/otp/verify",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/auth/login/otp/verify",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "auth",
+            "login",
+            "otp",
+            "verify"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "login/otp/verify",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"thanujathanuja211@gmail.com\",\r\n  \"otp\": \"657403\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/login/otp/verify",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "login",
+                "otp",
+                "verify"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 26 Feb 2026 14:15:04 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"message\": \"OTP verified successfully. Login completed.\",\n    \"data\": {\n        \"userId\": 2,\n        \"email\": \"thanujathanuja211@gmail.com\",\n        \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJmMDViZWU5Zi03MWQ0LTQwY2EtOTkxOC1hNDNlZWQ3YTU5MWEiLCJzdWIiOiIyIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3MjExNTMwNCwiZXhwIjoxNzcyMTE2MjA0fQ.EK9ArCa6dOz4FppobkNySQmBmfKPuNuDwpB6sUZ5INU\",\n        \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI1MTVlZDZlNy01MWJiLTRlZWUtYjRkYy00MzUxOWM2MjFlYTUiLCJzdWIiOiIyIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NzIxMTUzMDQsImV4cCI6MTc3NDcwNzMwNH0.JsmzLxnpFhnKyuh_tTiXBOnt14ehOq7UJ72zRey4y3A\",\n        \"expiresInSeconds\": 900\n    },\n    \"timestamp\": \"2026-02-26T19:45:04.4937787\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "refresh",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n            \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI1MTVlZDZlNy01MWJiLTRlZWUtYjRkYy00MzUxOWM2MjFlYTUiLCJzdWIiOiIyIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NzIxMTUzMDQsImV4cCI6MTc3NDcwNzMwNH0.JsmzLxnpFhnKyuh_tTiXBOnt14ehOq7UJ72zRey4y3A\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8089/auth/refresh",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "auth",
+            "refresh"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "refresh",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n            \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI1MTVlZDZlNy01MWJiLTRlZWUtYjRkYy00MzUxOWM2MjFlYTUiLCJzdWIiOiIyIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NzIxMTUzMDQsImV4cCI6MTc3NDcwNzMwNH0.JsmzLxnpFhnKyuh_tTiXBOnt14ehOq7UJ72zRey4y3A\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/refresh",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 26 Feb 2026 14:41:02 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"message\": \"Access token refreshed successfully.\",\n    \"data\": {\n        \"userId\": 2,\n        \"email\": \"thanujathanuja211@gmail.com\",\n        \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI4YTBjY2ZjOC03Njc5LTRmZjItOTM4ZC03MjgxOTFmNmRmZDkiLCJzdWIiOiIyIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3MjExNjg2MiwiZXhwIjoxNzcyMTE3NzYyfQ.9CkUdV2hGS7PalgK3C76FSLAMRXbpHh9UM4dOcIUEt8\",\n        \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI1MTVlZDZlNy01MWJiLTRlZWUtYjRkYy00MzUxOWM2MjFlYTUiLCJzdWIiOiIyIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NzIxMTUzMDQsImV4cCI6MTc3NDcwNzMwNH0.JsmzLxnpFhnKyuh_tTiXBOnt14ehOq7UJ72zRey4y3A\",\n        \"expiresInSeconds\": 900\n    },\n    \"timestamp\": \"2026-02-26T20:11:02.2897863\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "upload profile photo",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "uuid": "9d2f99a8-f29a-4eb9-a9b2-e525615506da",
+              "src": "postman-cloud:///1f10f2cc-19bb-41e0-8b23-934ad39322c5"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:8089/auth/upload/profile-photo",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "auth",
+            "upload",
+            "profile-photo"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "upload profile photo",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "uuid": "9d2f99a8-f29a-4eb9-a9b2-e525615506da",
+                  "src": "postman-cloud:///1f10f2cc-19bb-41e0-8b23-934ad39322c5"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/upload/profile-photo",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "upload",
+                "profile-photo"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 24 Feb 2026 14:19:13 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"message\": \"Profile photo uploaded successfully (512x512)\",\n    \"data\": \"http://localhost:8080/uploads/a89d0d65-80ff-4f58-839d-dbe050047c83.jpg\",\n    \"timestamp\": \"2026-02-24T19:49:13.1334657\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "logout",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI2MzgwMDdmMC1jMGQ3LTRjY2MtYWEzYy04Y2ViZjU4ZDQxMWEiLCJzdWIiOiIyIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3MjIwNDk1NSwiZXhwIjoxNzcyMjA1ODU1fQ.hB0a7nO7-eAXpfpZPwT7GeJcet-oCdLUSexrmUJX5n4",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\r\n"
+        },
+        "url": {
+          "raw": "http://localhost:8089/auth/logout",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "auth",
+            "logout"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "logout",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/logout",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 28 Feb 2026 05:52:54 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"message\": \"Logout successful\",\n    \"data\": {\n        \"logoutDevice\": \"Other Device\",\n        \"logoutTime\": \"2026-02-28T11:22:54.58864\",\n        \"logoutIp\": \"0:0:0:0:0:0:0:1\",\n        \"sessionTerminated\": true,\n        \"email\": \"thanujathanuja211@gmail.com\"\n    },\n    \"timestamp\": \"2026-02-28T11:22:54.58864\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "forgot password",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "http://localhost:8089/auth/",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "auth",
+            ""
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "forgot password",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "\r\n{\r\n  \"email\": \"thanujat667@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/password/forgot",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "password",
+                "forgot"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 28 Feb 2026 05:31:11 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"message\": \"OTP sent successfully\",\n    \"data\": {\n        \"email\": \"thanujat667@gmail.com\",\n        \"otpLength\": 6,\n        \"otpExpiresAt\": \"2026-02-28T11:11:04.7500424\",\n        \"message\": \"OTP sent to email. Use it within 10 minutes.\"\n    },\n    \"timestamp\": \"2026-02-28T11:01:11.0917535\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "resetpassword",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8089/auth/password/reset",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "auth",
+            "password",
+            "reset"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "resetpassword",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"thanujat667@gmail.com\",\r\n  \"otp\": \"309269\",\r\n  \"newPassword\": \"@THANUJA_12\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/password/reset",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "password",
+                "reset"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 28 Feb 2026 05:31:52 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"message\": \"Password reset successfully\",\n    \"data\": {\n        \"passwordChangedAt\": \"2026-02-28T11:01:52.3258117\",\n        \"message\": \"Password reset successfully.\",\n        \"email\": \"thanujat667@gmail.com\"\n    },\n    \"timestamp\": \"2026-02-28T11:01:52.3258117\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "list device",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": [
+        {
+          "name": "list device",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8089/auth/sessions",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "sessions"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 01 Mar 2026 09:38:33 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": [\n        {\n            \"id\": 22,\n            \"deviceInfo\": \"PostmanRuntime/7.51.1\",\n            \"loginTime\": \"2026-03-01T14:36:39.299131\",\n            \"email\": \"muthyalasowmya476@gmail.com\"\n        },\n        {\n            \"id\": 23,\n            \"deviceInfo\": \"PostmanRuntime/7.51.1\",\n            \"loginTime\": \"2026-03-01T14:44:48.383633\",\n            \"email\": \"muthyalasowmya476@gmail.com\"\n        },\n        {\n            \"id\": 24,\n            \"deviceInfo\": \"PostmanRuntime/7.51.1\",\n            \"loginTime\": \"2026-03-01T14:47:58.33915\",\n            \"email\": \"muthyalasowmya476@gmail.com\"\n        },\n        {\n            \"id\": 25,\n            \"deviceInfo\": \"PostmanRuntime/7.51.1\",\n            \"loginTime\": \"2026-03-01T14:54:57.961806\",\n            \"email\": \"muthyalasowmya476@gmail.com\"\n        },\n        {\n            \"id\": 26,\n            \"deviceInfo\": \"PostmanRuntime/7.51.1\",\n            \"loginTime\": \"2026-03-01T15:06:07.912022\",\n            \"email\": \"muthyalasowmya476@gmail.com\"\n        }\n    ],\n    \"message\": \"Sessions fetched successfully\",\n    \"success\": true,\n    \"timestamp\": \"2026-03-01T15:08:33.4863761\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "logout device",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8089/auth/sessions/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "auth",
+            "sessions",
+            "2"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "delete user",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/auth/sessions/2",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "sessions",
+                "2"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 28 Feb 2026 17:11:00 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": {\n        \"userId\": 2,\n        \"email\": \"thanujathanuja211@gmail.com\",\n        \"logoutDevice\": \"PostmanRuntime/7.51.1\",\n        \"logoutIp\": \"0:0:0:0:0:0:0:1\",\n        \"logoutTime\": \"2026-02-28T22:41:00.2049673\"\n    },\n    \"message\": \"Device logged out successfully\",\n    \"success\": true,\n    \"timestamp\": \"2026-02-28T22:41:00.2049673\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Logout everywhere",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": [
+        {
+          "name": "Logout everywhere",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8089/auth/sessions/all",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "auth",
+                "sessions",
+                "all"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 01 Mar 2026 10:30:27 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": {\n        \"revokedSessions\": [\n            {\n                \"id\": 29,\n                \"deviceInfo\": \"PostmanRuntime/7.51.1\",\n                \"loginTime\": \"2026-03-01T16:00:04.700359\",\n                \"email\": \"thanujathanuja211@gmail.com\"\n            }\n        ],\n        \"timestamp\": \"2026-03-01T16:00:27.3210195\",\n        \"totalSessionsRevoked\": 1,\n        \"userId\": 2\n    },\n    \"message\": \"Logged out from all sessions successfully\",\n    \"success\": true,\n    \"timestamp\": \"2026-03-01T16:00:27.3210195\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Fetch profile",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": [
+        {
+          "name": "Fetch profile",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8089/users/me",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 01 Mar 2026 11:52:00 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": {\n        \"userId\": 1,\n        \"firstName\": \"muthyala\",\n        \"lastName\": \"sowmya\",\n        \"email\": \"muthyalasowmya476@gmail.com\",\n        \"mobile\": \"6303092073\",\n        \"dob\": \"2004-05-2\",\n        \"profilePhoto\": \"http://localhost:8080/uploads/a89d0d65-80ff-4f58-839d-dbe050047c83.jpg\",\n        \"city\": \"hyderabad\",\n        \"state\": \"Telangana\",\n        \"country\": \"India\",\n        \"preferredLanguage\": \"English\",\n        \"organization\": \"mycompany\",\n        \"skills\": \"python\",\n        \"fieldOfStudy\": \"Computer Science\",\n        \"highestQualification\": \"Bachelor's Degree\",\n        \"role\": \"STUDENT\",\n        \"status\": \"ACTIVE\",\n        \"createdAt\": \"2026-02-26T19:17:30.59786\",\n        \"updatedAt\": \"2026-03-01T17:19:21.640299\",\n        \"lastLogin\": null,\n        \"activeSessions\": [\n            {\n                \"id\": 32,\n                \"deviceInfo\": \"PostmanRuntime/7.51.1\",\n                \"loginTime\": \"2026-03-01T16:54:40.905842\",\n                \"email\": \"muthyalasowmya476@gmail.com\"\n            },\n            {\n                \"id\": 33,\n                \"deviceInfo\": \"PostmanRuntime/7.51.1\",\n                \"loginTime\": \"2026-03-01T17:03:20.264352\",\n                \"email\": \"muthyalasowmya476@gmail.com\"\n            },\n            {\n                \"id\": 34,\n                \"deviceInfo\": \"PostmanRuntime/7.51.1\",\n                \"loginTime\": \"2026-03-01T17:19:21.671226\",\n                \"email\": \"muthyalasowmya476@gmail.com\"\n            }\n        ]\n    },\n    \"message\": \"User profile fetched successfully\",\n    \"success\": true,\n    \"timestamp\": \"2026-03-01T17:22:00.8561722\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "update profile",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": [
+        {
+          "name": "update profile",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"firstName\": \"sowmya\",\r\n    \"lastName\": \"muthyala\",\r\n    \"mobile\": \"9234543210\",\r\n    \"dob\": \"2005-05-05\",\r\n    \"city\": \"New York\",\r\n    \"state\": \"NY\",\r\n    \"country\": \"USA\",\r\n    \"organization\": \"Acme Corp\",\r\n    \"preferredLanguage\": \"English\",\r\n    \"skills\": \"Java, Spring Boot\",\r\n    \"fieldOfStudy\": \"Computer Science\",\r\n    \"highestQualification\": \"Master's Degree\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/users/me",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 01 Mar 2026 12:22:03 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": {\n        \"userId\": 1,\n        \"firstName\": \"sowmya\",\n        \"lastName\": \"muthyala\",\n        \"email\": \"muthyalasowmya476@gmail.com\",\n        \"mobile\": \"9234543210\",\n        \"dob\": \"2005-05-05\",\n        \"profilePhoto\": \"http://localhost:8080/uploads/a89d0d65-80ff-4f58-839d-dbe050047c83.jpg\",\n        \"city\": \"New York\",\n        \"state\": \"NY\",\n        \"country\": \"USA\",\n        \"preferredLanguage\": \"English\",\n        \"organization\": \"Acme Corp\",\n        \"skills\": \"Java, Spring Boot\",\n        \"fieldOfStudy\": \"Computer Science\",\n        \"highestQualification\": \"Master's Degree\",\n        \"role\": \"STUDENT\",\n        \"status\": \"ACTIVE\"\n    },\n    \"message\": \"Profile updated successfully\",\n    \"success\": true,\n    \"timestamp\": \"2026-03-01T17:52:03.3423394\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Upload photo",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": [
+        {
+          "name": "Upload photo",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "uuid": "7d87c926-4427-4a4c-9d38-02d2ec6018a0",
+                  "src": "/C:/Users/USER/Downloads/picture.jpeg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:8089/users/photo",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "users",
+                "photo"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 01 Mar 2026 13:05:55 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": {\n        \"userId\": 1,\n        \"firstName\": \"sowmya\",\n        \"lastName\": \"muthyala\",\n        \"email\": \"muthyalasowmya476@gmail.com\",\n        \"mobile\": \"9234543210\",\n        \"dob\": \"2005-05-05\",\n        \"profilePhoto\": \"/uploads/14429510-e3e3-45c5-9569-91e17cedb323.jpg\",\n        \"city\": \"New York\",\n        \"state\": \"NY\",\n        \"country\": \"USA\",\n        \"preferredLanguage\": \"English\",\n        \"organization\": \"Acme Corp\",\n        \"skills\": \"Java, Spring Boot\",\n        \"fieldOfStudy\": \"Computer Science\",\n        \"highestQualification\": \"Master's Degree\",\n        \"role\": \"STUDENT\",\n        \"status\": \"ACTIVE\"\n    },\n    \"message\": \"Profile photo updated successfully\",\n    \"success\": true,\n    \"timestamp\": \"2026-03-01T18:35:55.4035536\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "soft delete account",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJlMmFlNjlkOC01NGExLTQ3NmQtYTJhOS0yOGJmY2E3Y2JmNjkiLCJzdWIiOiIyIiwiaXNzIjoidXNlci1zZXJ2aWNlIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3MjM3Mjk5OCwiZXhwIjoxNzcyMzczODk4fQ.gVRpfQKfNSznwd0pvdXc4Y3m2-u8ugtr7KkobMDFBV4",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"reason\": \"User requested account deactivation\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8089/users/me",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8089",
+          "path": [
+            "users",
+            "me"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "soft delete account",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"reason\": \"User requested account deactivation\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/users/me",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 01 Mar 2026 13:50:16 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": {\n        \"userId\": 2,\n        \"firstName\": \"thangedipally\",\n        \"lastName\": \"Thanu\",\n        \"email\": \"thanujathanuja211@gmail.com\",\n        \"mobile\": \"8919986350\",\n        \"dob\": \"2006-09-12\",\n        \"profilePhoto\": \"http://localhost:8080/uploads/a89d0d65-80ff-4f58-839d-dbe050047c83.jpg\",\n        \"city\": \"hyderabad\",\n        \"state\": \"Telangana\",\n        \"country\": \"India\",\n        \"preferredLanguage\": \"English\",\n        \"organization\": \"mycompany\",\n        \"skills\": \"python\",\n        \"fieldOfStudy\": \"Computer Science\",\n        \"highestQualification\": \"Bachelor's Degree\",\n        \"role\": \"STUDENT\",\n        \"status\": \"SUSPENDED\",\n        \"createdAt\": \"2026-02-26T19:30:25.035467\",\n        \"updatedAt\": \"2026-03-01T19:20:16.5621665\"\n    },\n    \"message\": \"Account has been deactivated successfully\",\n    \"success\": true,\n    \"timestamp\": \"2026-03-01T19:20:16.6253872\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "instructor apply",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": [
+        {
+          "name": "instructor apply",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8089/instructors/apply",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8089",
+              "path": [
+                "instructors",
+                "apply"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-XSS-Protection",
+              "value": "0"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "key": "Expires",
+              "value": "0"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            },
+            {
+              "key": "Date",
+              "value": "Mon, 02 Mar 2026 15:33:22 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": {\n        \"userId\": 7,\n        \"firstName\": \"Thangedipally\",\n        \"lastName\": \"jashu\",\n        \"email\": \"nniyanch@gmail.com\",\n        \"mobile\": \"9948330345\",\n        \"dob\": \"2009-09-12\",\n        \"profilePhoto\": \"http://localhost:8080/uploads/d0c8b7e8-812b-4295-8dcc-02c600a6a748.jpg\",\n        \"city\": \"hyderabad\",\n        \"state\": \"Telangana\",\n        \"country\": \"India\",\n        \"preferredLanguage\": \"English,Telugu\",\n        \"organization\": \"mycompany\",\n        \"skills\": \"java\",\n        \"fieldOfStudy\": \"Computer Science Engineering\",\n        \"highestQualification\": \"Bachelor's Degree\",\n        \"role\": \"STUDENT\",\n        \"appliedRole\": \"INSTRUCTOR\",\n        \"applicationStatus\": \"PENDING_VERIFICATION\",\n        \"createdAt\": \"2026-03-02T20:58:15.881689\",\n        \"updatedAt\": \"2026-03-02T21:03:21.8904558\"\n    },\n    \"message\": \"Instructor application submitted successfully. Awaiting admin approval.\",\n    \"success\": true,\n    \"timestamp\": \"2026-03-02T21:03:21.9717142\"\n}"
+        }
+      ]
+    }
+  ]
+}

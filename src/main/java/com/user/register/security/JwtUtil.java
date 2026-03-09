@@ -1,5 +1,6 @@
 package com.user.register.security;
 
+import com.user.register.entity.User;
 import com.user.register.service.TokenBlacklistService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -46,11 +47,11 @@ public class JwtUtil {
 
     // ✅ Access Token (15 minutes)
     public String generateAccessToken(String email) {
-        return generateToken(email, ACCESS_TOKEN_EXPIRATION, "access");
+        return generateToken(String.valueOf(email), ACCESS_TOKEN_EXPIRATION, "access");
     }
 
     // ✅ Refresh Token (30 days)
-    public String generateRefreshToken(String email) {
+    public String generateRefreshToken(User user, String email) {
         return generateToken(email, REFRESH_TOKEN_EXPIRATION, "refresh");
     }
 

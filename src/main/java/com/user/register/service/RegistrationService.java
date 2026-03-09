@@ -15,23 +15,25 @@ import com.user.register.repository.AuditLogRepository;
 import com.user.register.repository.UserSessionRepository;
 import com.user.register.security.JwtUtil;
 import com.user.register.util.SecurityUtils;
-
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-
-import static aQute.bnd.annotation.headers.Category.device;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +42,6 @@ import static aQute.bnd.annotation.headers.Category.device;
 public class RegistrationService {
     private final UserSessionRepository userSessionRepository;   // ✅ inject
     private final AuditLogRepository auditLogRepository;         // ✅ inject
-
 
     private final UserRepository userRepository;
     private final OTPCodeRepository otpRepository;
@@ -58,6 +59,7 @@ public class RegistrationService {
     private static final int MAX_OTP_ATTEMPTS = 5;
     private Object newAccessToken;
     private String accessToken;
+
     public User register(User user, HttpServletRequest request) throws Exception {
 
         // ================= GET CLIENT IP =================
@@ -108,16 +110,28 @@ public class RegistrationService {
             throw new RuntimeException(
                     "Password is too weak. It must be at least 8 characters, contain uppercase, lowercase, number, and special character.");
         }
-
-        // ================= MOBILE CHECK =================
-        String encryptedMobile = SecurityUtils.encrypt(user.getMobile(), encryptionKey);
-
-        Optional<User> userWithMobile = userRepository.findByMobile(encryptedMobile);
-
-        if (userWithMobile.isPresent() && userWithMobile.get().getStatus() == User.Status.ACTIVE) {
-            throw new RuntimeException("Mobile number already registered");
+// ================= MOBILE VALIDATION =================
+        if (user.getMobile() == null || !user.getMobile().matches("\\d{10}")) {
+            throw new RuntimeException("Mobile number must be exactly 10 digits");
         }
 
+// ================= MOBILE CHECK =================
+        String encryptedMobile = SecurityUtils.encrypt(user.getMobile(), encryptionKey);
+        // ================= MOBILE CHECK =================
+        Optional<User> existingMobileUser = userRepository.findByMobile(encryptedMobile);
+
+        if (existingMobileUser.isPresent()) {
+
+            User mobileUser = existingMobileUser.get();
+
+            if (mobileUser.getStatus() == User.Status.ACTIVE) {
+                throw new RuntimeException("Mobile number already registered");
+            }
+
+            if (mobileUser.getStatus() == User.Status.PENDING_VERIFICATION) {
+                throw new RuntimeException("Mobile number already used.please use another mobile number.");
+            }
+        }
         Optional<User> existingUserOpt = userRepository.findByEmail(user.getEmail());
 
         // ================= EXISTING USER =================
@@ -427,90 +441,188 @@ public class RegistrationService {
         // 9️⃣ Return public URL
         return "http://localhost:8080/uploads/" + fileName;
     }
-    public Map<String, Object> verifyOTP(String email, String otp, HttpServletRequest request){
+
+        public ResponseEntity<Map<String, Object>> verifyOTP(
+                String email,
+                String otp,
+                HttpServletRequest request,
+                HttpServletResponse response){
+        // 1️⃣ Find user
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        if (user.getStatus() == User.Status.LOCKED)
-            return buildOtpResponse(false, "Account locked due to failed OTP attempts", 0, 0);
+        // 2️⃣ Account status checks
+        if (user.getStatus() == User.Status.LOCKED) {
+            return buildOtpResponse(HttpStatus.FORBIDDEN,
+                    false,
+                    "Account locked due to failed OTP attempts",
+                    0,
+                    0);
+        }
 
-        if (user.getStatus() == User.Status.SUSPENDED)
-            return buildOtpResponse(false, "Account suspended", 0, 0);
+        if (user.getStatus() == User.Status.SUSPENDED) {
+            return buildOtpResponse(HttpStatus.FORBIDDEN,
+                    false,
+                    "Account suspended",
+                    0,
+                    0);
+        }
 
-        OTPCode code = otpRepository.findTopByUserAndTypeOrderByCreatedAtDesc(user, "registration")
-                .orElseThrow(() -> new RuntimeException("Invalid OTP"));
+        // 3️⃣ Fetch latest OTP
 
-        // Check expiry
-        long secondsToExpire = Duration.between(LocalDateTime.now(), code.getExpiresAt()).getSeconds();
-        if (secondsToExpire <= 0)
-            return buildOtpResponse(false, "OTP expired", 0, 0);
+            OTPCode code = otpRepository
+                    .findTopByUserAndTypeOrderByCreatedAtDesc(user, "registration")
+                    .orElse(null);
 
-        // Increment attempts
+            if (code == null) {
+                return buildOtpResponse(
+                        HttpStatus.GONE,
+                        false,
+                        "OTP expired",
+                        0,
+                        0
+                );
+            }
+        // 4️⃣ OTP expiry check
+        long secondsToExpire =
+                Duration.between(LocalDateTime.now(), code.getExpiresAt()).getSeconds();
+            if (secondsToExpire == 0) {
+                return buildOtpResponse(
+                        HttpStatus.GONE,
+                        false,
+                        "OTP expired",
+                        0,
+                        0
+                );
+            }
+
+        // 5️⃣ Increment attempts (Brute force protection)
         int attempts = code.getAttempts() + 1;
         code.setAttempts(attempts);
         otpRepository.save(code);
 
-        // Lock after 5 failed attempts
+        // Lock account after 5 failed attempts
         if (attempts > 5) {
+
             user.setStatus(User.Status.LOCKED);
             userRepository.save(user);
-            return buildOtpResponse(false, "Too many failed OTP attempts. Account locked.", 0, 0);
+
+            return buildOtpResponse(HttpStatus.FORBIDDEN,
+                    false,
+                    "Too many failed OTP attempts. Account locked.",
+                    0,
+                    0);
         }
 
-        // OTP mismatch → decrease remainingAttempts
+        // 6️⃣ OTP mismatch
         if (!code.getOtp().equals(otp)) {
+
             int remainingAttempts = 5 - attempts;
-            return buildOtpResponse(false, "Invalid OTP", remainingAttempts, secondsToExpire);
+
+            return buildOtpResponse(HttpStatus.UNAUTHORIZED,
+                    false,
+                    "Invalid OTP",
+                    remainingAttempts,
+                    secondsToExpire);
         }
 
-        // OTP correct → success
+        // 7️⃣ OTP correct
         user.setStatus(User.Status.ACTIVE);
         userRepository.save(user);
+
+        // Prevent replay attack
         otpRepository.delete(code);
 
-        // ===== Device Detection =====
+        // 8️⃣ Device Detection
         String userAgent = request.getHeader("User-Agent");
         String ipAddress = request.getRemoteAddr();
 
         String device = detectDevice(userAgent);
         String browser = detectBrowser(userAgent);
         String os = detectOS(userAgent);
-        auditLogRepository.save(AuditLog.builder()
-                .user(user)
-                .action("VERIFY_OTP_SUCCESS")
-                .createdAt(LocalDateTime.now())
-                .build());
 
-        Map<String, Object> successData = new HashMap<>();
-        successData.put("userId", user.getId());
-        successData.put("firstName", user.getFirstName());
-        successData.put("lastName", user.getLastName());
-        successData.put("email", user.getEmail());
-        // add other safe fields as needed
-        successData.put("device", device);
-        successData.put("browser", browser);
-        successData.put("os", os);
-        successData.put("ipAddress", ipAddress);
-        Map<String, Object> successResponse = new HashMap<>();
-        successResponse.put("success", true);
-        successResponse.put("message", "OTP verified successfully");
-        successResponse.put("data", successData);
-        successResponse.put("timestamp", LocalDateTime.now());
+        // 9️⃣ Audit logging
+        auditLogRepository.save(
+                AuditLog.builder()
+                        .user(user)
+                        .action("VERIFY_OTP_SUCCESS")
+                        .ipAddress(ipAddress)
+                        .device(device)
+                        .createdAt(LocalDateTime.now())
+                        .build()
+        );
 
-        return successResponse;
+        // 🔟 Generate Tokens
+            String accessToken = jwtUtil.generateAccessToken(user.getEmail());
+            String refreshToken = jwtUtil.generateRefreshToken(user, device);
+        // Save refresh token for rotation / blacklist
+        user.setRefreshToken(refreshToken);
+        user.setDevice(device);
+        userRepository.save(user);
+        // 11️⃣ Access Token Cookie
+        Cookie accessCookie = new Cookie("accessToken", accessToken);
+        accessCookie.setHttpOnly(true);
+        accessCookie.setSecure(true);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(15 * 60);
+        response.addCookie(accessCookie);
+
+        // 12️⃣ Refresh Token Cookie
+        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(true);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(30 * 24 * 60 * 60);
+        response.addCookie(refreshCookie);
+
+        // 13️⃣ Response Data
+            Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", user.getId());
+        data.put("firstName", user.getFirstName());
+        data.put("lastName", user.getLastName());
+        data.put("email", user.getEmail());
+        data.put("mobile", user.getMobile());
+        data.put("dob", user.getDob());
+        data.put("profilePhoto", user.getProfilePhoto());
+        data.put("city", user.getCity());
+        data.put("state", user.getState());
+        data.put("country", user.getCountry());
+        data.put("preferredLanguage", user.getPreferredLanguage());
+        data.put("organization", user.getOrganization());
+        data.put("skills", user.getSkills());
+        data.put("fieldOfStudy", user.getFieldOfStudy());
+        data.put("highestQualification", user.getHighestQualification());
+        data.put("status", user.getStatus());
+        data.put("role", user.getRole());
+        data.put("isInstructorApproved", user.getIsInstructorApproved());
+
+            Map<String, Object> responseBody = new LinkedHashMap<>();
+        responseBody.put("success", true);
+        responseBody.put("message", "OTP verified successfully");
+        responseBody.put("data", data);
+        responseBody.put("timestamp", LocalDateTime.now());
+
+        return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }
+    private ResponseEntity<Map<String, Object>> buildOtpResponse(
+            HttpStatus status,
+            boolean success,
+            String message,
+            int remainingAttempts,
+            long expiresInSeconds) {
 
-    // Helper method to build OTP error response
-    private Map<String, Object> buildOtpResponse(boolean success, String message, int remainingAttempts, long expiresInSeconds) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", success);
-        response.put("message", message);
-        response.put("timestamp", LocalDateTime.now());
-        response.put("data", Map.of(
-                "remainingAttempts", remainingAttempts,
-                "expiresInSeconds", expiresInSeconds
-        ));
-        return response;
+        Map<String, Object> data = new HashMap<>();
+        data.put("remainingAttempts", remainingAttempts);
+        data.put("expiresInSeconds", expiresInSeconds);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", success);
+        body.put("message", message);
+        body.put("data", data);
+        body.put("timestamp", LocalDateTime.now());
+
+        return new ResponseEntity<>(body, status);
     }
     /**
      * Fetch user by email
@@ -588,7 +700,7 @@ public class RegistrationService {
 
         // 6️⃣ Generate tokens
         String accessToken = jwtUtil.generateAccessToken(String.valueOf(user.getId())); // 15 mins
-        String refreshToken = jwtUtil.generateRefreshToken(String.valueOf(user.getId())); // 30 days
+        String refreshToken = jwtUtil.generateRefreshToken(user, String.valueOf(user.getId())); // 30 days
 
         LocalDateTime accessTokenExpiry = LocalDateTime.now().plusMinutes(15);
         LocalDateTime refreshTokenExpiry = LocalDateTime.now().plusDays(30);
@@ -736,7 +848,7 @@ public class RegistrationService {
 
         // ✅ Generate tokens
         String accessToken = jwtUtil.generateAccessToken(String.valueOf(user.getId()));   // 15 mins
-        String refreshToken = jwtUtil.generateRefreshToken(String.valueOf(user.getId())); // 30 days
+        String refreshToken = jwtUtil.generateRefreshToken(user, String.valueOf(user.getId())); // 30 days
 
         LoginResponse response = new LoginResponse();
         response.setAccessToken(accessToken);

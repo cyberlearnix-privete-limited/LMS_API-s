@@ -1,13 +1,10 @@
 package com.user.register.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -70,6 +67,10 @@ public class  User {
     // ✅ Timestamp for rate-limiting
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    public void setRefreshToken(String refreshToken) {
+    }
+
     public enum Status { PENDING_VERIFICATION, ACTIVE, LOCKED, SUSPENDED, DELETED }
     public enum Role { STUDENT, INSTRUCTOR, ADMIN}
     public enum ApplicationStatus {
