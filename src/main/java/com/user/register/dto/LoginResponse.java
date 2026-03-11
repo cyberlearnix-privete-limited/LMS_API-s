@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
         "skills", "fieldOfStudy", "highestQualification", "role", "status",
         "isInstructorApproved", "failedLoginAttempts",
         "createdAt", "updatedAt", "lastLoginAt",
-        "loginDevice", "loginIp", "sessionId",
+        "loginDevice", "loginIp", "sessionId","Os","browser","useragent",
         "accessToken", "refreshToken", "expiresInSeconds"
 })
 public class LoginResponse {
@@ -52,6 +52,12 @@ public class LoginResponse {
     private String loginDevice;
     private String loginIp;
     private String sessionId;
+    private String device;
+    private String browser;
+    private String os;
+    private String userAgent;
+
+
 
     public void setAccessTokenExpiresAt(LocalDateTime localDateTime) {
     }

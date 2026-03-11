@@ -23,6 +23,7 @@ public class SessionController {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final SessionService sessionService;
+    private byte[] secretKey;
 
     public SessionController(UserSessionRepository sessionRepository,
                              UserRepository userRepository,
@@ -44,7 +45,6 @@ public class SessionController {
 
         String token = authHeader.substring(7);
         Long userId = Long.parseLong(jwtUtil.validateAccessTokenAndGetUserId(token));
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -97,7 +97,6 @@ public class SessionController {
 
             String token = authHeader.substring(7);
             Long userId = Long.parseLong(jwtUtil.validateAccessTokenAndGetUserId(token));
-
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 

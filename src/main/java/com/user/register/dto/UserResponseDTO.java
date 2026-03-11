@@ -24,7 +24,7 @@ public class UserResponseDTO {
     private String state;     // AES encrypted
     private String country;   // AES encrypted
     private String organization; // AES encrypted
-    private String profilePhoto; // ✅ Change type from MultipartFile to String
+    private String profilePhoto; // String
     private String preferredLanguage; // plain
     private String skills;            // plain
     private String fieldOfStudy;      // plain
@@ -33,6 +33,8 @@ public class UserResponseDTO {
     private String status;
     private LocalDateTime createdAt;
     private String ipAddress;
-    private String device;
-
+    private String device;  // device type
+    private String os;      // OS name
+    private String browser; // browser name
+    private String userAgent; // full User-Agent string
 }

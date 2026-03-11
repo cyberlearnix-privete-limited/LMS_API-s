@@ -20,7 +20,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,15 +39,14 @@ import java.util.*;
 @Transactional
 
 public class RegistrationService {
+    private final JwtUtil jwtUtil;
     private final UserSessionRepository userSessionRepository;   // ✅ inject
     private final AuditLogRepository auditLogRepository;         // ✅ inject
-
     private final UserRepository userRepository;
     private final OTPCodeRepository otpRepository;
     private final JavaMailSender mailSender;
     private final BCryptPasswordEncoder passwordEncoder; // inject bean
     private static final int MAX_FAILED_LOGIN = 5;
-    private final JwtUtil jwtUtil; // <-- inject JwtUtil
     private final TokenBlacklistService blacklistService;
     @Value("${app.encryption.key:1234567890123456}")
     private String encryptionKey;
@@ -57,8 +55,8 @@ public class RegistrationService {
     private String fromEmail;
 
     private static final int MAX_OTP_ATTEMPTS = 5;
-    private Object newAccessToken;
-    private String accessToken;
+    private byte[] secretKey;
+
 
     public User register(User user, HttpServletRequest request) throws Exception {
 
@@ -127,9 +125,25 @@ public class RegistrationService {
             if (mobileUser.getStatus() == User.Status.ACTIVE) {
                 throw new RuntimeException("Mobile number already registered");
             }
-
+            // NOT VERIFIED → resend OTP
             if (mobileUser.getStatus() == User.Status.PENDING_VERIFICATION) {
-                throw new RuntimeException("Mobile number already used.please use another mobile number.");
+
+                String otp = generateOTP();
+
+                OTPCode otpCode = OTPCode.builder()
+                        .user(mobileUser)
+                        .otp(otp)
+                        .type("registration")
+                        .expiresAt(LocalDateTime.now().plusMinutes(5))
+                        .attempts(0)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+
+                otpRepository.save(otpCode);
+
+                sendOtpEmail(mobileUser.getEmail(), otp, "Registration OTP");
+
+                return mobileUser;
             }
         }
         Optional<User> existingUserOpt = userRepository.findByEmail(user.getEmail());
@@ -280,8 +294,6 @@ public class RegistrationService {
 
         if (userAgent.contains("linux"))
             return "Linux Desktop";
-
-
         return "Unknown Device";
     }
     private String detectBrowser(String userAgent) {
@@ -639,44 +651,76 @@ public class RegistrationService {
         Random random = new Random();
         return String.valueOf(100000 + random.nextInt(900000));
     }
+    public ResponseEntity<Map<String, Object>> loginWithPassword(LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        LocalDateTime now = LocalDateTime.now();
 
-    public LoginResponse loginWithPassword(LoginRequest request) {
         // 1️⃣ Fetch user
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
-        // 2️⃣ Check account status
-        if (user.getStatus() == User.Status.PENDING_VERIFICATION) {
-            throw new RuntimeException("Email not verified");
-        }
-        if (user.getStatus() == User.Status.LOCKED) {
-            throw new RuntimeException("Account locked due to too many failed login attempts");
-        }
-        if (user.getStatus() == User.Status.SUSPENDED) {
-            throw new RuntimeException("Account suspended by admin");
+        // 2️⃣ Account status checks
+        if (user.getStatus() == User.Status.PENDING_VERIFICATION)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Email not verified");
+        if (user.getStatus() == User.Status.LOCKED)
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Account locked due to too many failed login attempts");
+        if (user.getStatus() == User.Status.SUSPENDED)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account suspended by admin");
+
+        // 3️⃣ Instructor approval check
+        if (user.getRole() == User.Role.INSTRUCTOR && !user.getIsInstructorApproved())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Instructor account not approved yet");
+
+        // 4️⃣ Get client IP
+        String ipAddress = httpRequest.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress))
+            ipAddress = httpRequest.getRemoteAddr();
+
+        // 5️⃣ Detect User-Agent details
+        String userAgent = httpRequest.getHeader("User-Agent");
+        String deviceType = detectDevice(userAgent);
+        String os = detectOS(userAgent);
+        String browser = detectBrowser(userAgent);
+
+        if (userAgent != null) {
+            String agent = userAgent.toLowerCase();
+
+            // Device detection
+            if (agent.contains("postman")) deviceType = "Postman";
+            else if (agent.contains("iphone") || agent.contains("android") || agent.contains("mobile"))
+                deviceType = "Mobile";
+            else if (agent.contains("ipad") || agent.contains("tablet")) deviceType = "Tablet";
+
+            // OS detection
+            if (agent.contains("windows")) os = "Windows";
+            else if (agent.contains("mac")) os = "MacOS";
+            else if (agent.contains("android")) os = "Android";
+            else if (agent.contains("iphone") || agent.contains("ios")) os = "iOS";
+            else if (agent.contains("linux")) os = "Linux";
+
+            // Browser detection
+            if (agent.contains("chrome") && !agent.contains("edge")) browser = "Chrome";
+            else if (agent.contains("firefox")) browser = "Firefox";
+            else if (agent.contains("safari") && !agent.contains("chrome")) browser = "Safari";
+            else if (agent.contains("edge")) browser = "Edge";
         }
 
-        // 3️⃣ Check instructor approval
-        if (user.getRole() == User.Role.INSTRUCTOR && !user.getIsInstructorApproved()) {
-            throw new RuntimeException("Instructor account not approved yet");
-        }
+        String deviceInfo = deviceType + " - " + os + " - " + browser;
 
-        // 4️⃣ Verify password
+        // 6️⃣ Verify password with brute force lockout
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             int failed = user.getFailedLoginAttempts() == null ? 1 : user.getFailedLoginAttempts() + 1;
             user.setFailedLoginAttempts(failed);
 
-            if (failed >= MAX_FAILED_LOGIN) {
-                user.setStatus(User.Status.LOCKED);
-            }
+            if (failed >= MAX_FAILED_LOGIN) user.setStatus(User.Status.LOCKED);
 
             userRepository.save(user);
 
             auditLogRepository.save(AuditLog.builder()
                     .user(user)
                     .action("LOGIN_FAILED")
-                    .ipAddress("N/A")
-                    .createdAt(LocalDateTime.now())
+                    .ipAddress(ipAddress)
+                    .device(deviceInfo)
+                    .createdAt(now)
                     .build());
 
             Map<String, Object> errorData = Map.of(
@@ -687,66 +731,84 @@ public class RegistrationService {
             throw new LoginFailedException("Invalid credentials", errorData);
         }
 
-        // 5️⃣ Reset failed attempts on successful login
+        // 7️⃣ Reset failed attempts on success
         user.setFailedLoginAttempts(0);
+        if (user.getCreatedAt() == null) user.setCreatedAt(now);
+        user.setUpdatedAt(now);
+        user.setLastLoginAt(now);
+        userRepository.save(user);
 
-        // ✅ Ensure timestamps are set for existing users
-        if (user.getCreatedAt() == null) user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
+// 8️⃣ Generate strong tokens
+        String accessToken = jwtUtil.generateAccessToken(user.getId().toString());
+        String refreshToken = jwtUtil.generateRefreshToken(user, user.getId().toString());
 
-        // Optional: set last login timestamp
-        user.setLastLoginAt(LocalDateTime.now());
-        userRepository.save(user); // triggers update for updatedAt & lastLoginAt
 
-        // 6️⃣ Generate tokens
-        String accessToken = jwtUtil.generateAccessToken(String.valueOf(user.getId())); // 15 mins
-        String refreshToken = jwtUtil.generateRefreshToken(user, String.valueOf(user.getId())); // 30 days
-
-        LocalDateTime accessTokenExpiry = LocalDateTime.now().plusMinutes(15);
-        LocalDateTime refreshTokenExpiry = LocalDateTime.now().plusDays(30);
-
+        LocalDateTime accessTokenExpiry = now.plusMinutes(15);
+        LocalDateTime refreshTokenExpiry = now.plusDays(30);
+        // Save refresh token for rotation & blacklist
+        user.setRefreshToken(refreshToken);
+        user.setDevice(deviceInfo);
+        user.setDevice(deviceType);
+        user.setBrowser(browser);
+        user.setOs(os);
+        user.setIpAddress(ipAddress);
+        user.setUserAgent(userAgent);
+        userRepository.save(user);
+        // 9️⃣ Audit success
         auditLogRepository.save(AuditLog.builder()
                 .user(user)
                 .action("LOGIN_SUCCESS")
-                .ipAddress("N/A")
-                .createdAt(LocalDateTime.now())
+                .ipAddress(ipAddress)
+                .device(deviceInfo)
+                .createdAt(now)
                 .build());
-        LoginResponse response = new LoginResponse();
-        response.setAccessToken(accessToken);
-        response.setExpiresInSeconds(900);
-        response.setUserId(user.getId());
-        response.setEmail(user.getEmail());
-        response.setFirstName(user.getFirstName());
-        response.setLastName(user.getLastName());
-        response.setMobile(user.getMobile());
-        response.setDob(user.getDob());
-        response.setProfilePhoto(user.getProfilePhoto());
-        response.setCity(user.getCity());
-        response.setState(user.getState());
-        response.setCountry(user.getCountry());
-        response.setOrganization(user.getOrganization());
-        response.setPreferredLanguage(user.getPreferredLanguage());
-        response.setSkills(user.getSkills());
-        response.setFieldOfStudy(user.getFieldOfStudy());
-        response.setHighestQualification(user.getHighestQualification());
-        response.setStatus(user.getStatus().name());
-        response.setRole(user.getRole().name());
-        response.setFailedLoginAttempts(user.getFailedLoginAttempts());
-        response.setIsInstructorApproved(user.getIsInstructorApproved());
-        response.setCreatedAt(user.getCreatedAt()); // entity field
-        response.setUpdatedAt(user.getUpdatedAt()); // entity field
-        response.setLastLoginAt(LocalDateTime.now());
-        response.setLoginDevice("Web");
-        response.setLoginIp("N/A");
-        response.setSessionId(UUID.randomUUID().toString());
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setExpiresInSeconds(15 * 60);
-        response.setAccessTokenExpiresAt(LocalDateTime.now().plusMinutes(15));
-        response.setRefreshTokenExpiresAt(LocalDateTime.now().plusDays(30));
-        return response;
-    }
 
+        // 🔟 Set HttpOnly cookies for tokens (CSRF & XSS safe)
+        Cookie accessCookie = new Cookie("accessToken", accessToken);
+        accessCookie.setHttpOnly(true);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(15 * 60);
+        httpResponse.addCookie(accessCookie);
+
+        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(30 * 24 * 60 * 60);
+        httpResponse.addCookie(refreshCookie);
+
+        // 1️⃣1️⃣ Build response
+// 1️⃣1️⃣ Build response
+        Map<String, Object> responseBody = new LinkedHashMap<>();
+        responseBody.put("success", true);
+        responseBody.put("statusCode", HttpStatus.OK.value());
+        responseBody.put("message", "Login successful");
+
+// ✅ User info
+        responseBody.put("userId", user.getId());
+        responseBody.put("email", user.getEmail());
+        responseBody.put("firstName", user.getFirstName());
+        responseBody.put("lastName", user.getLastName());
+        responseBody.put("mobile", user.getMobile());
+
+// ✅ Device & system info
+        responseBody.put("loginDevice", deviceInfo); // Full string: Device - OS - Browser
+        responseBody.put("device", deviceType);      // Just device
+        responseBody.put("browser", browser);
+        responseBody.put("os", os);
+        responseBody.put("userAgent", userAgent);
+        responseBody.put("loginIp", ipAddress);
+
+// ✅ Tokens
+        responseBody.put("accessToken", accessToken);
+        responseBody.put("refreshToken", refreshToken);
+        responseBody.put("accessTokenExpiresAt", accessTokenExpiry);
+        responseBody.put("refreshTokenExpiresAt", refreshTokenExpiry);
+
+// ✅ Timestamp
+        responseBody.put("timestamp", now);
+
+        return new ResponseEntity<>(responseBody, HttpStatus.OK);
+    }
     /**
      * Request OTP for login
      * Used by POST /auth/login/otp/request
@@ -894,7 +956,7 @@ public class RegistrationService {
 
         LoginResponse response = new LoginResponse();
 
-        response.setAccessToken(accessToken);
+        response.setAccessToken(newAccessToken);
         response.setExpiresInSeconds(900);
         response.setUserId(user.getId());
         response.setEmail(user.getEmail());
@@ -993,7 +1055,6 @@ public class RegistrationService {
     public Map<String, Object> logoutCurrentDevice(String accessToken, String ipAddress, String deviceInfo) {
         // 1️⃣ Validate token & extract userId
         String userId = jwtUtil.validateAccessTokenAndGetUserId(accessToken);
-
         User user = userRepository.findById(Long.parseLong(userId))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 

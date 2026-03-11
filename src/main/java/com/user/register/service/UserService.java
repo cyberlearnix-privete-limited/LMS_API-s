@@ -5,7 +5,6 @@ import com.user.register.dto.SessionDto;
 import com.user.register.dto.UpdateUserProfileRequest;
 import com.user.register.dto.UserProfileResponse;
 import com.user.register.entity.User;
-import com.user.register.entity.UserSession;
 import com.user.register.repository.UserRepository;
 import com.user.register.repository.UserSessionRepository;
 import com.user.register.security.JwtUtil;
@@ -33,6 +32,7 @@ public class UserService {
     private final UserSessionRepository sessionRepository;
     private final JwtUtil jwtUtil;
     private final String encryptionKey = "1234567890123456"; // your encryption key
+    private byte[] secretKey;
 
     public UserService(UserRepository userRepository,
                        UserSessionRepository sessionRepository,
@@ -50,7 +50,6 @@ public class UserService {
         }
         String token = authHeader.substring(7);
         Long userId = Long.parseLong(jwtUtil.validateAccessTokenAndGetUserId(token));
-
         // 2️⃣ Fetch user from DB
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));

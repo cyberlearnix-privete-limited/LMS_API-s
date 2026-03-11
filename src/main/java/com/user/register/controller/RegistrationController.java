@@ -38,16 +38,15 @@ public class RegistrationController {
     private final RegistrationService registrationService;
     private final UserRepository userRepository;           // add this
     private final UserSessionRepository sessionRepository;
+    private final JwtUtil jwtUtil;
+    private final TokenBlacklistService blacklistService;
+    private final String encryptionKey = "my-secret-key";
 
     private RegistrationService authService;
-    private JwtUtil jwtUtil;
-    private TokenBlacklistService blacklistService;
     private Object userId;
     private String token;
     private Object SessionService;
-    private JwtUtil jwtService;
     private Object user;
-    private String encryptionKey;
 
     @PostMapping(value = "/upload/profile-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadProfilePhoto(@RequestParam("file") MultipartFile file) {
@@ -203,15 +202,11 @@ public class RegistrationController {
         String otp = body.get("otp");
 
         try {
-
             // Call service (pass response for cookies)
-
             ResponseEntity<Map<String, Object>> serviceResponse =
                     registrationService.verifyOTP(email, otp, request, response);
             return serviceResponse;
-
         } catch (InvalidOtpException ex) {
-
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", ex.getMessage());
@@ -220,9 +215,7 @@ public class RegistrationController {
                     "expiresInSeconds", ex.getSecondsUntilExpiry()
             ));
             errorResponse.put("timestamp", LocalDateTime.now());
-
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-
         } catch (RuntimeException e) {
 
             Map<String, Object> errorResponse = new HashMap<>();
@@ -248,7 +241,6 @@ public class RegistrationController {
             } else {
                 status = HttpStatus.INTERNAL_SERVER_ERROR; // 500
             }
-
             return ResponseEntity.status(status).body(errorResponse);
         }
     }
@@ -258,41 +250,54 @@ public class RegistrationController {
                                                HttpServletResponse httpResponse) {
 
         try {
-
-            // 1️⃣ Authenticate user
-            registrationService.loginWithPassword(request);
+            // 1️⃣ Authenticate user via service
+            ResponseEntity<Map<String, Object>> loginResponse =
+                    registrationService.loginWithPassword(request, httpRequest, httpResponse);
 
             // 2️⃣ Fetch user
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 3️⃣ Generate tokens
-            String accessToken = jwtService.generateAccessToken(user.getEmail());
-            String refreshToken = jwtService.generateRefreshToken(user, user.getEmail());
+            // 3️⃣ Generate tokens using JwtUtil
+            String accessToken = jwtUtil.generateAccessToken(user.getId().toString());
+            String refreshToken = jwtUtil.generateRefreshToken(user, user.getId().toString());
+
+
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime accessTokenExpiry = now.plusMinutes(15);
+            LocalDateTime refreshTokenExpiry = now.plusDays(30);
 
             // 4️⃣ Get device + IP
             String deviceInfo = httpRequest.getHeader("User-Agent");
+            if (deviceInfo == null) deviceInfo = "Unknown Device";
+
             String ipAddress = httpRequest.getRemoteAddr();
 
             // 5️⃣ Save session
+
             UserSession session = UserSession.builder()
                     .user(user)
-                    .token(accessToken)
-                    .token(refreshToken)
+                    .accessToken(accessToken)    // ✅ set accessToken
+                    .refreshToken(refreshToken)
                     .deviceInfo(deviceInfo)
                     .ipAddress(ipAddress)
-                    .expiresAt(LocalDateTime.now().plusDays(30))
+                    .expiresAt(refreshTokenExpiry)
                     .build();
-
             sessionRepository.save(session);
 
-            // 6️⃣ Refresh token cookie
+            // 6️⃣ Set HttpOnly cookies for tokens
+            Cookie accessCookie = new Cookie("accessToken", accessToken);
+            accessCookie.setHttpOnly(true);
+            accessCookie.setSecure(false);
+            accessCookie.setPath("/");
+            accessCookie.setMaxAge(15 * 60); // 15 mins
+            httpResponse.addCookie(accessCookie);
+
             Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
             refreshCookie.setHttpOnly(true);
-            refreshCookie.setSecure(true);
+            refreshCookie.setSecure(false);
             refreshCookie.setPath("/");
-            refreshCookie.setMaxAge(30 * 24 * 60 * 60);
-
+            refreshCookie.setMaxAge(30 * 24 * 60 * 60); // 30 days
             httpResponse.addCookie(refreshCookie);
 
             // 7️⃣ Prepare encrypted response
@@ -329,57 +334,45 @@ public class RegistrationController {
 
             responseData.setLastLoginAt(LocalDateTime.now());
             responseData.setSessionId(String.valueOf(session.getId()));
-
             // 8️⃣ API Response
-            ApiResponse<LoginResponse> response = new ApiResponse<>(
+            ApiResponse<LoginResponse> apiResponse = new ApiResponse<>(
                     true,
                     "Login successful",
                     responseData,
-                    LocalDateTime.now()
+                    now
             );
 
-            return ResponseEntity.status(HttpStatus.OK).body(response);
+            return ResponseEntity.ok(apiResponse);
 
-        }
-
-        catch (LoginFailedException ex) {
-
+        } catch (LoginFailedException ex) {
             ApiResponse<Object> response = new ApiResponse<>(
                     false,
                     ex.getMessage(),
                     ex.getDetails(),
                     LocalDateTime.now()
             );
-
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-        }
-
-        catch (AccountLockedException ex) {
-
+        } catch (AccountLockedException ex) {
             ApiResponse<Object> response = new ApiResponse<>(
                     false,
                     "Account locked due to multiple failed login attempts",
                     null,
                     LocalDateTime.now()
             );
-
             return ResponseEntity.status(HttpStatus.LOCKED).body(response);
-        }
-
-        catch (RuntimeException e) {
-
+        } catch (RuntimeException e) {
             ApiResponse<Object> response = new ApiResponse<>(
                     false,
                     e.getMessage(),
                     null,
                     LocalDateTime.now()
             );
-
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
+
 
     @PostMapping("/login/otp/request")
     public ResponseEntity<?> requestLoginOtp(@RequestBody Map<String, String> request) {
@@ -404,7 +397,7 @@ public class RegistrationController {
     }
 
     @PostMapping("/login/otp/verify")
-    public ResponseEntity<?> verifyLoginOtp(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> verifyLoginOtp(@RequestBody Map<String, String> request,HttpServletRequest httpRequest) {
 
         try {
 
@@ -437,11 +430,23 @@ public class RegistrationController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> refreshToken(HttpServletRequest httpRequest) {
+
+        LocalDateTime now = LocalDateTime.now();
 
         try {
-            String refreshToken = request.get("refreshToken");
+            // 1️⃣ Get Authorization header
+            String authHeader = httpRequest.getHeader("Authorization");
 
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, "Missing or invalid Authorization header", null, now));
+            }
+
+            // 2️⃣ Extract the refresh token from header
+            String refreshToken = authHeader.substring(7); // Remove "Bearer "
+
+            // 3️⃣ Call service to refresh access token
             LoginResponse response = registrationService.refreshAccessToken(refreshToken);
 
             return ResponseEntity.ok(
@@ -449,7 +454,7 @@ public class RegistrationController {
                             true,
                             "Access token refreshed successfully.",
                             response,
-                            LocalDateTime.now()
+                            now
                     )
             );
 
@@ -459,11 +464,10 @@ public class RegistrationController {
                             false,
                             ex.getMessage(),
                             null,
-                            LocalDateTime.now()
+                            now
                     ));
         }
     }
-
     // ================= FORGOT PASSWORD =================
     @PostMapping("/password/forgot")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {

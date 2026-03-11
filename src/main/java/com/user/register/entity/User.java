@@ -53,6 +53,7 @@ public class  User {
     private String device;
     private String browser;
     private String os;
+
     private String userAgent;
     @PrePersist
     protected void onCreate() {

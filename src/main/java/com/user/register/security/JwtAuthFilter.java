@@ -1,22 +1,20 @@
 package com.user.register.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.user.register.repository.UserSessionRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -26,71 +24,56 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final UserSessionRepository userSessionRepository;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        String path = request.getRequestURI();
+
+        return path.startsWith("/auth/")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // ✅ Skip filter for login & register APIs
-        String path = request.getRequestURI();
-        if (path.contains("/login") || path.contains("/register")) {
-            filterChain.doFilter(request, response);
-            return;
+        String token = null;
+
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
         }
-
-        String header = request.getHeader("Authorization");
-
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7).trim();
+        System.out.println("REQUEST PATH: " + request.getRequestURI());
+        if (token != null) {
 
             try {
-                // 1️⃣ Validate token
-                String email = jwtUtil.validateAccessTokenAndGetUserId(token);
 
-                // 2️⃣ Check if token exists in DB (active session)
-                boolean sessionExists = userSessionRepository.findByToken(token).isPresent();
-                if (!sessionExists) {
-                    unauthorizedResponse(response, "User is logged out or token invalid");
-                    return;
-                }
+                String userId = jwtUtil.validateAccessTokenAndGetUserId(token);
 
-                // 3️⃣ Check token expiry
-                if (jwtUtil.extractExpiration(token).before(new java.util.Date())) {
-                    userSessionRepository.findByToken(token)
-                            .ifPresent(userSessionRepository::delete);
+                userSessionRepository.findByAccessToken(token)
+                        .orElseThrow(() -> new RuntimeException("Session not found"));
 
-                    unauthorizedResponse(response, "Token expired. Please login again.");
-                    return;
-                }
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                userId,
+                                null,
+                                List.of(new SimpleGrantedAuthority("USER"))
+                        );
 
-                // 4️⃣ Set authentication
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(email, null, List.of());
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContextHolder.getContext().setAuthentication(auth);
 
             } catch (Exception e) {
-                // ✅ Do not expose internal exception message
-                unauthorizedResponse(response, "Invalid or expired token");
-                return;
+
+                SecurityContextHolder.clearContext();
             }
         }
 
-        // Continue filter chain
         filterChain.doFilter(request, response);
-    }
-
-    // Helper method to send 401 JSON response
-    private void unauthorizedResponse(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
-
-        Map<String, Object> resp = new HashMap<>();
-        resp.put("success", false);
-        resp.put("message", message);
-        resp.put("timestamp", LocalDateTime.now().toString());
-
-        new ObjectMapper().writeValue(response.getWriter(), resp);
-        SecurityContextHolder.clearContext();
     }
 }

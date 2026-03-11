@@ -1,9 +1,6 @@
 package com.user.register.service;
 
-import com.user.register.dto.ApiResponse;
 import com.user.register.dto.InstructorApplyResponse;
-import com.user.register.dto.SessionDto;
-import com.user.register.dto.UserProfileResponse;
 import com.user.register.entity.User;
 import com.user.register.repository.UserRepository;
 import com.user.register.repository.UserSessionRepository;
@@ -13,8 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class InstructorService {
@@ -22,6 +17,7 @@ public class InstructorService {
     private final UserRepository userRepository;
     private final UserSessionRepository sessionRepository;
     private final JwtUtil jwtUtil;
+    private byte[] secretKey;
 
     public InstructorService(UserRepository userRepository,
                              UserSessionRepository sessionRepository,
@@ -38,7 +34,6 @@ public class InstructorService {
         }
         String token = authHeader.substring(7);
         Long userId = Long.parseLong(jwtUtil.validateAccessTokenAndGetUserId(token));
-
         // 2️⃣ Fetch user
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
