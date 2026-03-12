@@ -42,10 +42,12 @@ public class SessionService {
         session.setCreatedAt(LocalDateTime.now());
         sessionRepository.save(session);
     }
+
     public List<UserSession> getSessionsForUser(User user) {
         return sessionRepository.findByUser(user);
     }
 
+    // Logout single device
     public LogoutResponse logoutDevice(Long sessionId, HttpServletRequest request) {
 
         UserSession session = sessionRepository.findById(sessionId)
@@ -53,26 +55,30 @@ public class SessionService {
 
         User user = session.getUser();
 
-        sessionRepository.delete(session);
-
-        return new LogoutResponse(
+        LogoutResponse response = new LogoutResponse(
                 user.getId(),
                 user.getEmail(),
                 session.getDeviceInfo(),
-                request.getRemoteAddr(),
+                getClientIp(request),   // ✅ correct IP extraction
                 LocalDateTime.now()
         );
+
+        sessionRepository.delete(session);
+
+        return response;
     }
+
     public List<SessionDto> logoutAllSessions(User user) {
+
         List<UserSession> activeSessions = sessionRepository.findByUser(user)
                 .stream()
                 .filter(s -> s.getExpiresAt() == null || s.getExpiresAt().isAfter(LocalDateTime.now()))
                 .toList();
 
-        // Map to SessionDto
         List<SessionDto> revokedSessions = activeSessions.stream()
                 .map(s -> new SessionDto(
                         s.getId(),
+                        user.getId(),
                         s.getDeviceInfo(),
                         s.getIpAddress(),
                         s.getCreatedAt(),
@@ -80,27 +86,31 @@ public class SessionService {
                 ))
                 .toList();
 
-        // Delete sessions
         sessionRepository.deleteAll(activeSessions);
 
         return revokedSessions;
     }
 
-    // Helper to get real client IP
     private String getClientIp(HttpServletRequest request) {
+
         String ip = request.getHeader("X-Forwarded-For");
+
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("Proxy-Client-IP");
         }
+
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("WL-Proxy-Client-IP");
         }
+
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
+
         if (ip != null && ip.contains(",")) {
             ip = ip.split(",")[0].trim();
         }
+
         return ip;
     }
 }

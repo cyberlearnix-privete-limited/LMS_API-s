@@ -15,4 +15,6 @@ public class LoginFailedException extends RuntimeException {
     public Map<String, Object> getDetails() {
         return details;
     }
+
+
 }

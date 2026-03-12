@@ -3,7 +3,6 @@ package com.user.register.controller;
 import com.user.register.dto.ApiResponse;
 import com.user.register.dto.UpdateUserProfileRequest;
 import com.user.register.dto.UserProfileResponse;
-import com.user.register.security.JwtUtil;
 import com.user.register.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +30,7 @@ public class UserController {
             );
         } catch (RuntimeException e) {
             return ResponseEntity.status(400)
-                    .body(new ApiResponse<>(false, e.getMessage(), null));
+                    .body(new ApiResponse<>(false, "Missing or invalid Authorization header", null));
         }
     }
     @PutMapping("/me")

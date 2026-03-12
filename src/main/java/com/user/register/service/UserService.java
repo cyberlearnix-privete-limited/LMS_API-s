@@ -70,6 +70,7 @@ public class UserService {
                 .filter(s -> s.getExpiresAt() == null || s.getExpiresAt().isAfter(LocalDateTime.now()))
                 .map(s -> new SessionDto(
                         s.getId(),
+                        user.getId(),
                         s.getDeviceInfo(),
                         s.getIpAddress(),
                         s.getCreatedAt(),
@@ -245,6 +246,8 @@ public class UserService {
                     .filter(s -> s.getExpiresAt() == null || s.getExpiresAt().isAfter(LocalDateTime.now()))
                     .map(s -> new SessionDto(
                             s.getId(),
+                            user.getId(),
+
                             s.getDeviceInfo(),
                             s.getIpAddress(),
                             s.getCreatedAt(),

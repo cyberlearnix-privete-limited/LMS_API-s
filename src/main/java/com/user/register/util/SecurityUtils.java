@@ -2,6 +2,7 @@ package com.user.register.util;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -60,4 +61,5 @@ public class SecurityUtils {
 
         return new String(cipher.doFinal(Base64.getDecoder().decode(value)));
     }
+
 }

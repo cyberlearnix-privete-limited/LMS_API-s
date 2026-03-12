@@ -1,6 +1,7 @@
 package com.user.register.controller;
 
 import com.user.register.dto.ApiResponse;
+import com.user.register.dto.LogoutAllResponse;
 import com.user.register.dto.LogoutResponse;
 import com.user.register.dto.SessionDto;
 import com.user.register.entity.User;
@@ -53,6 +54,7 @@ public class SessionController {
                 .filter(s -> s.getExpiresAt() == null || s.getExpiresAt().isAfter(LocalDateTime.now()))
                 .map(s -> new SessionDto(
                         s.getId(),
+                        user.getId(),
                         s.getDeviceInfo(),
                         s.getIpAddress(),   // IP now saved
                         s.getCreatedAt(),
@@ -74,47 +76,84 @@ public class SessionController {
             HttpServletRequest request) {
 
         try {
+
             LogoutResponse response = sessionService.logoutDevice(sessionId, request);
 
-            return ResponseEntity.ok(
-                    new ApiResponse<>(true, "Device logged out successfully", response)
+            return ResponseEntity.status(200).body(
+                    new ApiResponse<>(
+                            true,
+                            "Device logged out successfully",
+                            response,
+                            LocalDateTime.now()
+                    )
             );
 
         } catch (RuntimeException e) {
-            return ResponseEntity.status(400)
-                    .body(new ApiResponse<>(false, e.getMessage(), null));
+
+            return ResponseEntity.status(404).body(
+                    new ApiResponse<>(
+                            false,
+                            e.getMessage(),
+                            null,
+                            LocalDateTime.now()
+                    )
+            );
         }
     }
 
     @DeleteMapping("/sessions/all")
     public ResponseEntity<ApiResponse<Object>> logoutAllSessions(HttpServletRequest request) {
+
         try {
+
             String authHeader = request.getHeader("Authorization");
+
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401)
-                        .body(new ApiResponse<>(false, "Missing or invalid Authorization header", null));
+                return ResponseEntity.status(401).body(
+                        new ApiResponse<>(
+                                false,
+                                "Missing or invalid Authorization header",
+                                null,
+                                LocalDateTime.now()
+                        )
+                );
             }
 
             String token = authHeader.substring(7);
+
             Long userId = Long.parseLong(jwtUtil.validateAccessTokenAndGetUserId(token));
+
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             List<SessionDto> revokedSessions = sessionService.logoutAllSessions(user);
 
-            // Build LogoutResponse exactly like your JSON example
-            LogoutResponse response = new LogoutResponse(
+            LogoutAllResponse response = new LogoutAllResponse(
                     user.getId(),
                     revokedSessions.size(),
                     revokedSessions,
-                    java.time.LocalDateTime.now()
+                    LocalDateTime.now()
             );
 
-            return ResponseEntity.ok(new ApiResponse<>(true, "Logged out from all sessions successfully", response));
+            return ResponseEntity.status(200).body(
+                    new ApiResponse<>(
+                            true,
+                            "Logged out from all sessions successfully",
+                            response,
+                            LocalDateTime.now()
+                    )
+            );
 
         } catch (RuntimeException e) {
-            return ResponseEntity.status(400)
-                    .body(new ApiResponse<>(false, e.getMessage(), null));
+
+            return ResponseEntity.status(400).body(
+                    new ApiResponse<>(
+                            false,
+                            e.getMessage(),
+                            null,
+                            LocalDateTime.now()
+                    )
+            );
         }
     }
 }

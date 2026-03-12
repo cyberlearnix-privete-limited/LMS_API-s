@@ -40,6 +40,7 @@ dependencies {
 
     // JWT (Nimbus - RS256 support)
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'eu.bitwalker:UserAgentUtils:1.21'
 
     // Bucket4j Rate Limiting
     implementation 'com.bucket4j:bucket4j-core:8.7.0'

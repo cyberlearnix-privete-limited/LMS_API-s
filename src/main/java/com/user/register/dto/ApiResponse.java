@@ -18,7 +18,7 @@ public class ApiResponse<T> {
     private LocalDateTime timestamp;
 
     // ✅ Generic constructor for any type T
-    public ApiResponse(boolean success, String message, T data) {
+    public ApiResponse(boolean b, String missingOrInvalidAuthorizationHeader, Object o) {
         this.success = success;
         this.message = message;
         this.data = data;

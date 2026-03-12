@@ -71,7 +71,8 @@ public class  User {
 
     public void setRefreshToken(String refreshToken) {
     }
-
+    @Column
+    private LocalDateTime lockedUntil; // null means not locked
     public enum Status { PENDING_VERIFICATION, ACTIVE, LOCKED, SUSPENDED, DELETED }
     public enum Role { STUDENT, INSTRUCTOR, ADMIN}
     public enum ApplicationStatus {

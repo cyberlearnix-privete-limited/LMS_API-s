@@ -11,6 +11,7 @@ import com.user.register.security.JwtUtil;
 import com.user.register.service.RegistrationService;
 import com.user.register.service.TokenBlacklistService;
 import com.user.register.util.SecurityUtils;
+import eu.bitwalker.useragentutils.UserAgent;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.imageio.ImageIO;
 import javax.security.auth.login.AccountLockedException;
@@ -28,6 +30,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -47,6 +50,7 @@ public class RegistrationController {
     private String token;
     private Object SessionService;
     private Object user;
+    private String browser;
 
     @PostMapping(value = "/upload/profile-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadProfilePhoto(@RequestParam("file") MultipartFile file) {
@@ -274,7 +278,9 @@ public class RegistrationController {
             String ipAddress = httpRequest.getRemoteAddr();
 
             // 5️⃣ Save session
-
+            UserAgent userAgent = UserAgent.parseUserAgentString(deviceInfo);
+            String browser = userAgent.getBrowser().getName();
+            String os = userAgent.getOperatingSystem().getName();
             UserSession session = UserSession.builder()
                     .user(user)
                     .accessToken(accessToken)    // ✅ set accessToken
@@ -331,7 +337,8 @@ public class RegistrationController {
 
             responseData.setLoginDevice(SecurityUtils.encrypt(deviceInfo, encryptionKey));
             responseData.setLoginIp(SecurityUtils.encrypt(ipAddress, encryptionKey));
-
+            responseData.setBrowser(SecurityUtils.encrypt(browser, encryptionKey));
+            responseData.setOs(SecurityUtils.encrypt(os, encryptionKey));
             responseData.setLastLoginAt(LocalDateTime.now());
             responseData.setSessionId(String.valueOf(session.getId()));
             // 8️⃣ API Response
@@ -373,7 +380,6 @@ public class RegistrationController {
         }
     }
 
-
     @PostMapping("/login/otp/request")
     public ResponseEntity<?> requestLoginOtp(@RequestBody Map<String, String> request) {
         try {
@@ -395,40 +401,36 @@ public class RegistrationController {
                     ));
         }
     }
-
     @PostMapping("/login/otp/verify")
-    public ResponseEntity<?> verifyLoginOtp(@RequestBody Map<String, String> request,HttpServletRequest httpRequest) {
+    public ResponseEntity<ApiResponse<?>> verifyLoginOtp(@RequestBody Map<String, String> request) {
 
-        try {
+        String email = request.get("email");
+        String otp = request.get("otp");
 
-            String email = request.get("email");
-            String otp = request.get("otp");
+        // Call service method which returns ApiResponse
+        ApiResponse<?> response = registrationService.verifyLoginOtp(email, otp);
 
-            LoginResponse loginResponse =
-                    registrationService.verifyLoginOtp(email, otp);
+        // Determine HTTP status based on success and message
+        HttpStatus status = HttpStatus.OK; // default
 
-            return ResponseEntity.ok(
-                    new ApiResponse<>(
-                            true,
-                            "OTP verified successfully. Login completed.",
-                            loginResponse,
-                            LocalDateTime.now()
-                    )
-            );
+        if (!response.isSuccess()) {
+            String msg = response.getMessage().toLowerCase();
 
-        } catch (RuntimeException ex) {
-
-            return ResponseEntity.badRequest().body(
-                    new ApiResponse<>(
-                            false,
-                            ex.getMessage(),
-                            null,
-                            LocalDateTime.now()
-                    )
-            );
+            if (msg.contains("locked")) {
+                status = HttpStatus.LOCKED; // 423
+            } else if (msg.contains("invalid otp") || msg.contains("invalid credentials")) {
+                status = HttpStatus.UNAUTHORIZED; // 401
+            } else if (msg.contains("not active")) {
+                status = HttpStatus.FORBIDDEN; // 403
+            } else if (msg.contains("frequently")) {
+                status = HttpStatus.TOO_MANY_REQUESTS; // 429
+            } else {
+                status = HttpStatus.BAD_REQUEST; // fallback
+            }
         }
-    }
 
+        return ResponseEntity.status(status).body(response);
+    }
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(HttpServletRequest httpRequest) {
 

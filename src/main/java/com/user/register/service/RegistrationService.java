@@ -296,6 +296,7 @@ public class RegistrationService {
             return "Linux Desktop";
         return "Unknown Device";
     }
+
     private String detectBrowser(String userAgent) {
 
         if (userAgent == null) return "Unknown Browser";
@@ -319,6 +320,7 @@ public class RegistrationService {
 
         return "Unknown Browser";
     }
+
     private String detectOS(String userAgent) {
 
         if (userAgent == null)
@@ -454,11 +456,11 @@ public class RegistrationService {
         return "http://localhost:8080/uploads/" + fileName;
     }
 
-        public ResponseEntity<Map<String, Object>> verifyOTP(
-                String email,
-                String otp,
-                HttpServletRequest request,
-                HttpServletResponse response){
+    public ResponseEntity<Map<String, Object>> verifyOTP(
+            String email,
+            String otp,
+            HttpServletRequest request,
+            HttpServletResponse response) {
         // 1️⃣ Find user
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
@@ -483,31 +485,31 @@ public class RegistrationService {
 
         // 3️⃣ Fetch latest OTP
 
-            OTPCode code = otpRepository
-                    .findTopByUserAndTypeOrderByCreatedAtDesc(user, "registration")
-                    .orElse(null);
+        OTPCode code = otpRepository
+                .findTopByUserAndTypeOrderByCreatedAtDesc(user, "registration")
+                .orElse(null);
 
-            if (code == null) {
-                return buildOtpResponse(
-                        HttpStatus.GONE,
-                        false,
-                        "OTP expired",
-                        0,
-                        0
-                );
-            }
+        if (code == null) {
+            return buildOtpResponse(
+                    HttpStatus.GONE,
+                    false,
+                    "OTP expired",
+                    0,
+                    0
+            );
+        }
         // 4️⃣ OTP expiry check
         long secondsToExpire =
                 Duration.between(LocalDateTime.now(), code.getExpiresAt()).getSeconds();
-            if (secondsToExpire == 0) {
-                return buildOtpResponse(
-                        HttpStatus.GONE,
-                        false,
-                        "OTP expired",
-                        0,
-                        0
-                );
-            }
+        if (secondsToExpire == 0) {
+            return buildOtpResponse(
+                    HttpStatus.GONE,
+                    false,
+                    "OTP expired",
+                    0,
+                    0
+            );
+        }
 
         // 5️⃣ Increment attempts (Brute force protection)
         int attempts = code.getAttempts() + 1;
@@ -566,8 +568,8 @@ public class RegistrationService {
         );
 
         // 🔟 Generate Tokens
-            String accessToken = jwtUtil.generateAccessToken(user.getEmail());
-            String refreshToken = jwtUtil.generateRefreshToken(user, device);
+        String accessToken = jwtUtil.generateAccessToken(user.getEmail());
+        String refreshToken = jwtUtil.generateRefreshToken(user, device);
         // Save refresh token for rotation / blacklist
         user.setRefreshToken(refreshToken);
         user.setDevice(device);
@@ -589,7 +591,7 @@ public class RegistrationService {
         response.addCookie(refreshCookie);
 
         // 13️⃣ Response Data
-            Map<String, Object> data = new LinkedHashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("id", user.getId());
         data.put("firstName", user.getFirstName());
         data.put("lastName", user.getLastName());
@@ -609,7 +611,7 @@ public class RegistrationService {
         data.put("role", user.getRole());
         data.put("isInstructorApproved", user.getIsInstructorApproved());
 
-            Map<String, Object> responseBody = new LinkedHashMap<>();
+        Map<String, Object> responseBody = new LinkedHashMap<>();
         responseBody.put("success", true);
         responseBody.put("message", "OTP verified successfully");
         responseBody.put("data", data);
@@ -617,6 +619,7 @@ public class RegistrationService {
 
         return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }
+
     private ResponseEntity<Map<String, Object>> buildOtpResponse(
             HttpStatus status,
             boolean success,
@@ -636,6 +639,7 @@ public class RegistrationService {
 
         return new ResponseEntity<>(body, status);
     }
+
     /**
      * Fetch user by email
      */
@@ -651,6 +655,7 @@ public class RegistrationService {
         Random random = new Random();
         return String.valueOf(100000 + random.nextInt(900000));
     }
+
     public ResponseEntity<Map<String, Object>> loginWithPassword(LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         LocalDateTime now = LocalDateTime.now();
 
@@ -791,6 +796,7 @@ public class RegistrationService {
         responseBody.put("mobile", user.getMobile());
 
 // ✅ Device & system info
+
         responseBody.put("loginDevice", deviceInfo); // Full string: Device - OS - Browser
         responseBody.put("device", deviceType);      // Just device
         responseBody.put("browser", browser);
@@ -809,6 +815,7 @@ public class RegistrationService {
 
         return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }
+
     /**
      * Request OTP for login
      * Used by POST /auth/login/otp/request
@@ -818,23 +825,13 @@ public class RegistrationService {
         Optional<User> userOptional = userRepository.findByEmail(email);
 
         if (userOptional.isEmpty()) {
-            return new ApiResponse<>(
-                    false,
-                    "User not found",
-                    null,
-                    LocalDateTime.now()
-            );
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
 
         User user = userOptional.get();
 
         if (user.getStatus() != User.Status.ACTIVE) {
-            return new ApiResponse<>(
-                    false,
-                    "Account not active",
-                    null,
-                    LocalDateTime.now()
-            );
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account not active");
         }
 
         Optional<OTPCode> recentOtpOptional =
@@ -843,18 +840,12 @@ public class RegistrationService {
         if (recentOtpOptional.isPresent()) {
             OTPCode recentOtp = recentOtpOptional.get();
 
-            if (recentOtp.getCreatedAt()
-                    .plusSeconds(30)
-                    .isAfter(LocalDateTime.now())) {
-
-                return new ApiResponse<>(
-                        false,
-                        "OTP requested too frequently. Please wait 30 seconds.",
-                        null,
-                        LocalDateTime.now()
-                );
+            if (recentOtp.getCreatedAt().plusSeconds(30).isAfter(LocalDateTime.now())) {
+                throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                        "OTP requested too frequently. Please wait 30 seconds.");
             }
         }
+
         String otp = generateOTP();
 
         OTPCode otpCode = OTPCode.builder()
@@ -868,7 +859,7 @@ public class RegistrationService {
 
         otpRepository.save(otpCode);
 
-        sendOtpEmail(user.getEmail(), otp, "Password Reset OTP");
+        sendOtpEmail(user.getEmail(), otp, "Login OTP");
 
         Map<String, Object> data = new HashMap<>();
         data.put("email", user.getEmail());
@@ -876,6 +867,7 @@ public class RegistrationService {
         data.put("expiresAt", otpCode.getExpiresAt());
         data.put("validForMinutes", 5);
         data.put("cooldownSeconds", 30);
+
         return new ApiResponse<>(
                 true,
                 "Login OTP sent successfully to registered email.",
@@ -883,51 +875,90 @@ public class RegistrationService {
                 LocalDateTime.now()
         );
     }
+    public ApiResponse<?> verifyLoginOtp(String email, String otp) {
+        User user = userRepository.findByEmail(email).orElse(null);
 
-    public LoginResponse verifyLoginOtp(String email, String otp) {
+        if (user == null) {
+            return buildOtpErrorResponse("Invalid credentials", 0, 0);
+        }
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+            return buildOtpErrorResponse(
+                    "Account temporarily locked until " + user.getLockedUntil(),
+                    0,
+                    0
+            );
+        }
 
         if (user.getStatus() != User.Status.ACTIVE) {
-            throw new RuntimeException("Account not active");
+            return buildOtpErrorResponse("Account not active", 0, 0);
         }
 
-        OTPCode code = otpRepository
-                .findTopByUserAndTypeOrderByCreatedAtDesc(user, "login")
-                .orElseThrow(() -> new RuntimeException("Invalid OTP"));
+        OTPCode code = otpRepository.findTopByUserAndTypeOrderByCreatedAtDesc(user, "login").orElse(null);
+        if (code == null) {
+            return buildOtpErrorResponse("Invalid OTP", 0, 0);
+        }
 
-        if (code.getExpiresAt().isBefore(LocalDateTime.now())) {
+        // Calculate remaining OTP validity
+        long expiresInSeconds = Duration.between(LocalDateTime.now(), code.getExpiresAt()).getSeconds();
+        if (expiresInSeconds <= 0) {
             otpRepository.delete(code);
-            throw new RuntimeException("OTP expired");
+            return buildOtpErrorResponse("OTP expired", 0, 0);
         }
 
+        // Check OTP correctness
         if (!code.getOtp().equals(otp)) {
-            throw new RuntimeException("Invalid OTP");
+            code.setAttempts(code.getAttempts() + 1);
+            otpRepository.save(code);
+
+            int remainingAttempts = 5 - code.getAttempts();
+
+            if (remainingAttempts <= 0) {
+                user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
+                userRepository.save(user);
+                otpRepository.delete(code);
+                return buildOtpErrorResponse(
+                        "Maximum OTP attempts reached. Account locked until " + user.getLockedUntil(),
+                        0,
+                        0
+                );
+            }
+
+            return buildOtpErrorResponse("Invalid OTP", remainingAttempts, expiresInSeconds);
         }
 
+        // OTP correct → delete OTP
         otpRepository.delete(code);
 
-        // ✅ Generate tokens
-        String accessToken = jwtUtil.generateAccessToken(String.valueOf(user.getId()));   // 15 mins
-        String refreshToken = jwtUtil.generateRefreshToken(user, String.valueOf(user.getId())); // 30 days
+        // Generate tokens
+        String accessToken = jwtUtil.generateAccessToken(String.valueOf(user.getId()));
+        String refreshToken = jwtUtil.generateRefreshToken(user, String.valueOf(user.getId()));
 
-        LoginResponse response = new LoginResponse();
-        response.setAccessToken(accessToken);
-        response.setExpiresInSeconds(900);
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setTokenType("Bearer");
-        response.setAccessTokenExpiresInMinutes(15L);
-        response.setRefreshTokenExpiresInDays(30L);
-        response.setUserId(user.getId());
-        response.setEmail(user.getEmail());
-        response.setLoginTime(LocalDateTime.now());
-        response.setExpiresInSeconds(900); // 15 minutes
+        Map<String, Object> data = new HashMap<>();
+        data.put("accessToken", accessToken);
+        data.put("refreshToken", refreshToken);
+        data.put("accessTokenExpiresInSeconds", 900);
+        data.put("refreshTokenExpiresInDays", 30);
 
-        return response;
+        return new ApiResponse<>(
+                true,
+                "OTP verified successfully",
+                data,
+                LocalDateTime.now()
+        );
     }
+    private ApiResponse<Map<String, Object>> buildOtpErrorResponse(String message, int remainingAttempts, long expiresInSeconds) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("remainingAttempts", remainingAttempts);
+        data.put("expiresInSeconds", expiresInSeconds);
 
+        return new ApiResponse<>(
+                false,
+                message,
+                data,
+                LocalDateTime.now()
+        );
+    }
     public LoginResponse refreshAccessToken(String refreshToken) {
 
         // 1️⃣ Validate refresh token

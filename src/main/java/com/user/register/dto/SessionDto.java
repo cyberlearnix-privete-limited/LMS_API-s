@@ -14,7 +14,17 @@ import java.time.LocalDateTime;
 public class SessionDto {
     private Long id;
     private String deviceInfo;
+    private Long userId;
+
     private String ipAddress;
     private LocalDateTime loginTime;
     private String email;
+    public SessionDto(Long id, Long userId, String deviceInfo, String ipAddress, LocalDateTime loginTime, String email) {
+        this.id = id;
+        this.userId = userId;
+        this.deviceInfo = deviceInfo;
+        this.ipAddress = ipAddress;
+        this.loginTime = loginTime;
+        this.email = email;
+    }
 }

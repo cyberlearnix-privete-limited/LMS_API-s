@@ -21,6 +21,7 @@ public class OTPCode {
     private String otp;
     private String type; // registration, password_reset, login
     private LocalDateTime expiresAt;
-    private int attempts = 0;
+    @Column(nullable = false)
+    private Integer attempts = 0; // can be null initially if you want
     private LocalDateTime createdAt = LocalDateTime.now();
 }
