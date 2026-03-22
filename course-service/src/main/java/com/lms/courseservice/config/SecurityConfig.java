@@ -29,8 +29,13 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
 
                         // Public access
-                        .requestMatchers(HttpMethod.GET, "/courses/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/sections/*/lectures")
+                        .hasAnyRole("STUDENT","INSTRUCTOR","ADMIN")
                         .requestMatchers(HttpMethod.GET, "/courses/*/sections").permitAll()
+
+                        // ✅ STUDENT enroll (put BEFORE /courses/**)
+                        .requestMatchers(HttpMethod.POST, "/courses/*/enroll")
+                        .hasRole("STUDENT")
 
                         // Instructor/Admin manage courses
                         .requestMatchers(HttpMethod.POST, "/courses/**").hasAnyRole("INSTRUCTOR","ADMIN")
@@ -44,7 +49,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/courses/sections/*").hasAnyRole("INSTRUCTOR","ADMIN")
 
                         // Lectures
-                        // Lectures
                         .requestMatchers(HttpMethod.GET, "/sections/*/lectures").permitAll()
 
                         .requestMatchers(HttpMethod.POST, "/sections/*/lectures")
@@ -52,10 +56,13 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.PATCH, "/sections/*/lectures/*")
                         .hasAnyRole("INSTRUCTOR","ADMIN")
+
                         .requestMatchers(HttpMethod.DELETE, "/sections/*/lectures/*")
                         .hasAnyRole("INSTRUCTOR","ADMIN")
+
                         .requestMatchers(HttpMethod.POST, "/courses/*/preview/*")
                         .hasAnyRole("INSTRUCTOR","ADMIN")
+
                         .anyRequest().authenticated()
                 )
 

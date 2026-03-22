@@ -1,19 +1,24 @@
 package com.lms.courseservice.service;
 
 import com.lms.courseservice.entity.Course;
+import com.lms.courseservice.entity.Enrollment;
 import com.lms.courseservice.entity.Lecture;
 import com.lms.courseservice.repository.CourseRepository;
+import com.lms.courseservice.repository.EnrollmentRepository;
 import com.lms.courseservice.repository.LectureRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CourseService {
+
     private final LectureRepository lectureRepository;
     private final CourseRepository courseRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     public Course createCourse(Course course) {
         course.setStatus("Draft");
@@ -70,17 +75,42 @@ public class CourseService {
     public void deleteCourse(Long id) {
         courseRepository.deleteById(id);
     }
-    public Lecture enableLecturePreview(Long courseId, Long lectureId){
+
+    public Lecture enableLecturePreview(Long courseId, Long lectureId) {
 
         Lecture lecture = lectureRepository.findById(lectureId)
                 .orElseThrow(() -> new RuntimeException("Lecture not found"));
 
-        if(!lecture.getSection().getCourse().getId().equals(courseId)){
+        if (!lecture.getSection().getCourse().getId().equals(courseId)) {
             throw new RuntimeException("Lecture does not belong to this course");
         }
 
         lecture.setPreviewEnabled(true);
 
         return lectureRepository.save(lecture);
+    }
+
+    // 🔥 FIXED → UUID
+    public List<UUID> getStudents(Long courseId) {
+
+        return enrollmentRepository.findByCourseId(courseId)
+                .stream()
+                .map(Enrollment::getStudentId)
+                .toList();
+    }
+
+    // 🔥 FIXED → UUID
+    public void enrollUser(Long courseId, UUID userId) {
+
+        // Prevent duplicate enrollment
+        if (enrollmentRepository.existsByStudentIdAndCourseId(userId, courseId)) {
+            throw new RuntimeException("Already enrolled");
+        }
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setCourseId(courseId);
+        enrollment.setStudentId(userId);
+
+        enrollmentRepository.save(enrollment);
     }
 }

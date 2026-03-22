@@ -1,6 +1,10 @@
 package com.lms.courseservice.controller;
 
+import com.lms.courseservice.entity.Lecture;
 import com.lms.courseservice.entity.Section;
+import com.lms.courseservice.repository.EnrollmentRepository;
+import com.lms.courseservice.security.JwtUtil;
+import com.lms.courseservice.service.LectureService;
 import com.lms.courseservice.service.SectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +17,10 @@ import java.util.List;
 public class SectionController {
 
     private final SectionService sectionService;
+
+    private final JwtUtil jwtUtil;
+    private final LectureService lectureService;
+    private final EnrollmentRepository enrollmentRepository;
 
     // Instructor/Admin only
     @PostMapping("/{courseId}/sections")
@@ -39,4 +47,5 @@ public class SectionController {
     public void deleteSection(@PathVariable Long sectionId) {
         sectionService.deleteSection(sectionId);
     }
+
 }

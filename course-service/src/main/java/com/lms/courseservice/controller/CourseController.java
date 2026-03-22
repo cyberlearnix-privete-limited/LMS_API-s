@@ -1,12 +1,13 @@
 package com.lms.courseservice.controller;
 
 import com.lms.courseservice.entity.Course;
-import com.lms.courseservice.entity.Lecture;
+import com.lms.courseservice.security.JwtUtil;
 import com.lms.courseservice.service.CourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/courses")
@@ -14,6 +15,7 @@ import java.util.List;
 public class CourseController {
 
     private final CourseService courseService;
+    private final JwtUtil jwtUtil;
 
     // Instructor/Admin only
     @PostMapping
@@ -21,6 +23,7 @@ public class CourseController {
         return courseService.createCourse(course);
     }
 
+    // Public
     @GetMapping
     public List<Course> getAllCourses(){
         return courseService.getAllCourses();
@@ -32,13 +35,13 @@ public class CourseController {
         return courseService.getCourseById(id);
     }
 
-    // Full update (optional)
+    // Full update
     @PutMapping("/{id}")
     public Course updateCourse(@PathVariable Long id, @RequestBody Course course){
         return courseService.updateCourse(id, course);
     }
 
-    // Partial update (recommended)
+    // Partial update
     @PatchMapping("/{id}")
     public Course updateCoursePartial(@PathVariable Long id, @RequestBody Course course){
         return courseService.updateCourse(id, course);
@@ -48,5 +51,25 @@ public class CourseController {
     @DeleteMapping("/{id}")
     public void deleteCourse(@PathVariable Long id){
         courseService.deleteCourse(id);
+    }
+
+    // 🔥 Get students enrolled in course
+    @GetMapping("/{courseId}/students")
+    public List<UUID> getStudents(@PathVariable Long courseId){
+        return courseService.getStudents(courseId);
+    }
+
+    // 🔥 Enroll user
+    @PostMapping("/{courseId}/enroll")
+    public String enroll(@PathVariable Long courseId,
+                         @RequestHeader("Authorization") String token) {
+
+        String tokenValue = token.substring(7);
+
+        UUID userId = jwtUtil.extractUserId(tokenValue);
+
+        courseService.enrollUser(courseId, userId); // ✅ FIXED
+
+        return "Enrolled successfully";
     }
 }

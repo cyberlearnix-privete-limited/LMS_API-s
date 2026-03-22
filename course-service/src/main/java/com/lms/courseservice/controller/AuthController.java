@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -14,13 +15,16 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/login")
-    public Map<String,String> login(@RequestParam String username,
-                                    @RequestParam String role){
+    public Map<String, String> login(@RequestParam String username,
+                                     @RequestParam String role) {
 
-        String token = jwtUtil.generateToken(username,role);
+        // ✅ Convert username → UUID
+        UUID userId = UUID.fromString(username);
+
+        String token = jwtUtil.generateToken(userId, role);
 
         return Map.of(
-                "access_token",token
+                "access_token", token
         );
     }
 }

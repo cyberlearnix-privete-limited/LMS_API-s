@@ -47,7 +47,14 @@ public class SectionService {
         return sectionRepository.save(section);
     }
 
+    public Long getCourseIdBySection(Long sectionId) {
+        Section section = sectionRepository.findById(sectionId)
+                .orElseThrow(() -> new RuntimeException("Section not found"));
+
+        return section.getCourse().getId();
+    }
     // Delete Section
+
     public void deleteSection(Long sectionId) {
         sectionRepository.deleteById(sectionId);
     }

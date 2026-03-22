@@ -4,55 +4,55 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
 @Component
 public class JwtUtil {
 
-    // 256-bit secret key (must be at least 32 characters)
+    // 🔐 Must be at least 32 chars
     private final String SECRET = "mysupersecretkeymysupersecretkey1234";
 
-    private Key getKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
-    }
+    // ✅ Proper key (modern way)
+    private final SecretKey key = Keys.hmacShaKeyFor(
+            SECRET.getBytes(StandardCharsets.UTF_8)
+    );
 
-    // Generate Access Token
-    public String generateToken(String username, String role) {
+    // ✅ Generate Token
+    public String generateToken(UUID userId, String role) {
 
         return Jwts.builder()
-                .setId(UUID.randomUUID().toString())     // token id
-                .setSubject(username)                    // user identifier
-                .claim("role", role)                     // include role
-                .setIssuer("course-service")             // service issuing token
+                .setSubject(userId.toString())
+                .claim("role", role)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 24 hours
-                .signWith(getKey(), SignatureAlgorithm.HS256)
+                .setExpiration(new Date(System.currentTimeMillis() + 86400000))
+                .signWith(key) // 🔥 FIXED
                 .compact();
     }
 
-    // Extract Username
+    // ✅ Extract Username (UUID as String)
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    // Extract Role
+    // ✅ Extract Role
     public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
     }
 
-    // Extract All Claims
+    // ✅ Extract All Claims
     private Claims extractAllClaims(String token) {
 
         return Jwts.parserBuilder()
-                .setSigningKey(getKey())
+                .setSigningKey(key) // 🔥 FIXED (no getKey needed)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
 
-    // Validate Token
+    // ✅ Validate Token
     public boolean validateToken(String token) {
         try {
             extractAllClaims(token);
@@ -60,5 +60,12 @@ public class JwtUtil {
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    // 🔥 FIXED: Return UUID instead of Long
+    public UUID extractUserId(String token) {
+        return UUID.fromString(
+                extractAllClaims(token).getSubject()
+        );
     }
 }

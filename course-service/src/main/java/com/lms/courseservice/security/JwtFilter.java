@@ -14,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -36,16 +37,16 @@ public class JwtFilter extends OncePerRequestFilter {
             if (jwtUtil.validateToken(token)
                     && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                String username = jwtUtil.extractUsername(token);
+                // 🔥 Extract userId instead of username
+                UUID userId = UUID.fromString(jwtUtil.extractUsername(token));
                 String role = jwtUtil.extractRole(token);
 
-                // Convert role to Spring Security format
                 SimpleGrantedAuthority authority =
                         new SimpleGrantedAuthority("ROLE_" + role);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                username,
+                                userId,   // ✅ store userId directly
                                 null,
                                 List.of(authority)
                         );
