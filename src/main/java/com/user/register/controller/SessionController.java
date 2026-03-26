@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -35,7 +36,6 @@ public class SessionController {
         this.jwtUtil = jwtUtil;
         this.sessionService = sessionService;
     }
-
     @GetMapping("/sessions")
     public ApiResponse<List<SessionDto>> listSessions(HttpServletRequest request) {
 
@@ -45,7 +45,9 @@ public class SessionController {
         }
 
         String token = authHeader.substring(7);
-        Long userId = Long.parseLong(jwtUtil.validateAccessTokenAndGetUserId(token));
+
+        UUID userId = UUID.fromString(jwtUtil.validateAccessTokenAndGetUserId(token));
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -56,9 +58,9 @@ public class SessionController {
                         s.getId(),
                         user.getId(),
                         s.getDeviceInfo(),
-                        s.getIpAddress(),   // IP now saved
+                        s.getIpAddress(),
                         s.getCreatedAt(),
-                        user.getEmail()     // email added
+                        user.getEmail()
                 ))
                 .toList();
 
@@ -72,7 +74,7 @@ public class SessionController {
 
     @DeleteMapping("/sessions/{id}")
     public ResponseEntity<ApiResponse<Object>> logoutDevice(
-            @PathVariable("id") Long sessionId,
+            @PathVariable("id") UUID  sessionId,
             HttpServletRequest request) {
 
         try {
@@ -121,7 +123,7 @@ public class SessionController {
 
             String token = authHeader.substring(7);
 
-            Long userId = Long.parseLong(jwtUtil.validateAccessTokenAndGetUserId(token));
+            UUID userId = UUID.fromString(jwtUtil.validateAccessTokenAndGetUserId(token));
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));

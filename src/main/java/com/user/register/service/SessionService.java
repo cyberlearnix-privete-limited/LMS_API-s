@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
+
 @JsonInclude(JsonInclude.Include.NON_NULL) // ignore nulls
 
 @Service
@@ -48,11 +50,9 @@ public class SessionService {
     }
 
     // Logout single device
-    public LogoutResponse logoutDevice(Long sessionId, HttpServletRequest request) {
-
+    public LogoutResponse logoutDevice(UUID sessionId, HttpServletRequest request){
         UserSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
-
         User user = session.getUser();
 
         LogoutResponse response = new LogoutResponse(

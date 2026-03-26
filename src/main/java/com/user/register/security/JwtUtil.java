@@ -10,8 +10,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.crypto.SecretKey;
-import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
@@ -26,158 +24,93 @@ public class JwtUtil {
 
     private static final String ISSUER = "user-service";
 
-    private static final long ACCESS_TOKEN_EXPIRATION = 15L * 60 * 1000; // 15 minutes
-    private static final long REFRESH_TOKEN_EXPIRATION = 30L * 24 * 60 * 60 * 1000; // 30 days
+    private static final long ACCESS_TOKEN_EXPIRATION = 15 * 60 * 1000;
+    private static final long REFRESH_TOKEN_EXPIRATION = 30L * 24 * 60 * 60 * 1000;
 
-
-    // Generate secret key
     private SecretKey getSecretKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
-
     // ================= TOKEN GENERATION =================
-
-    private String generateToken(String subject, long expiration, String type) {
+    private String generateToken(String subject, long expiration, String type, String role) {
 
         return Jwts.builder()
                 .setId(UUID.randomUUID().toString())
                 .setSubject(subject)
                 .setIssuer(ISSUER)
                 .claim("type", type)
+                .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSecretKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-
-    public String generateAccessToken(String userId) {
-        return generateToken(userId, ACCESS_TOKEN_EXPIRATION, "access");
+    public String generateAccessToken(String userId, String role) {
+        return generateToken(userId, ACCESS_TOKEN_EXPIRATION, "access", role);
     }
 
-
-    public String generateRefreshToken(User user, String userId) {
-        return generateToken(userId, REFRESH_TOKEN_EXPIRATION, "refresh");
+    public String generateRefreshToken(User user, String userId, String role) {
+        return generateToken(userId, REFRESH_TOKEN_EXPIRATION, "refresh", role);
     }
-
 
     // ================= CLAIM EXTRACTION =================
-
     private Claims extractAllClaims(String token) {
-
-        return Jwts.parserBuilder()
-                .setSigningKey(getSecretKey())
-                .requireIssuer(ISSUER)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-
-    public String extractUserId(String token) {
-        return extractAllClaims(token).getSubject();
-    }
-
-
-    public String extractTokenType(String token) {
-        return extractAllClaims(token).get("type", String.class);
-    }
-
-
-    public Date extractExpiration(String token) {
-        return extractAllClaims(token).getExpiration();
-    }
-
-
-    // ================= VALIDATION =================
-
-    public boolean validateToken(String token) {
         try {
-            extractAllClaims(token);
-            return true;
-        } catch (JwtException e) {
-            return false;
-        }
-    }
-
-
-    public String validateRefreshTokenAndGetUserId(String token) {
-
-        try {
-
-            Claims claims = extractAllClaims(token);
-
-            if (!"refresh".equals(claims.get("type", String.class))) {
-                throw new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "Invalid token type"
-                );
-            }
-
-            return claims.getSubject();
-
-        } catch (JwtException e) {
-
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "Invalid or expired refresh token"
-            );
-        }
-    }
-
-
-    // ================= RANDOM TOKEN GENERATION =================
-
-    public String generateStrongAccessToken(Long userId, int byteLength) {
-
-        SecureRandom random = new SecureRandom();
-
-        byte[] bytes = new byte[byteLength];
-
-        random.nextBytes(bytes);
-
-        return Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(bytes);
-    }
-
-
-    public String generateStrongRefreshToken(Long userId, int byteLength) {
-
-        SecureRandom random = new SecureRandom();
-
-        byte[] bytes = new byte[byteLength];
-
-        random.nextBytes(bytes);
-
-        return Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(bytes);
-    }
-    public String validateAccessTokenAndGetUserId(String token) {
-
-        if (token == null || token.isBlank()) {
-            throw new RuntimeException("JWT token is missing");
-        }
-
-        try {
-
-            Claims claims = Jwts.parserBuilder()
+            return Jwts.parserBuilder()
                     .setSigningKey(getSecretKey())
                     .requireIssuer(ISSUER)
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
 
-            if (!"access".equals(claims.get("type", String.class))) {
-                throw new RuntimeException("Invalid JWT token type");
-            }
-
-            return claims.getSubject();
+        } catch (ExpiredJwtException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token expired");
 
         } catch (JwtException e) {
-            throw new RuntimeException("Invalid JWT token");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+    }
+
+    public String extractUserId(String token) {
+        return extractAllClaims(token).getSubject();
+    }
+
+    // ✅ FIXED: NO ROLE MODIFICATION HERE
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
+    }
+
+    public String extractTokenType(String token) {
+        return extractAllClaims(token).get("type", String.class);
+    }
+
+    // ================= VALIDATION =================
+    public String validateAccessTokenAndGetUserId(String token) {
+
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token missing");
+        }
+
+        if (blacklistService.isBlacklisted(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token blacklisted");
+        }
+
+        Claims claims = extractAllClaims(token);
+
+        if (!"access".equals(claims.get("type", String.class))) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token type");
+        }
+
+        return claims.getSubject();
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            extractAllClaims(token);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 }

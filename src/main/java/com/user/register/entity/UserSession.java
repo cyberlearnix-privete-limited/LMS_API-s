@@ -21,8 +21,12 @@ public class UserSession {
     private User user;
 
     private String deviceInfo;   // optional: browser/device info
-    private String token;        // JWT refresh or access token
+    @Column(columnDefinition = "TEXT")
+    private String token;  // if needed
+    @Column(columnDefinition = "TEXT")
     private String accessToken;
+
+    @Column(columnDefinition = "TEXT")
     private String refreshToken;
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

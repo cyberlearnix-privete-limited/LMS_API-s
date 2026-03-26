@@ -5,6 +5,7 @@ import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -13,7 +14,8 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 
 public class UserResponseDTO {
-    private Long id;
+
+    private UUID userId;
     private String email;
     private String password; // bcrypt
     private String firstName; // AES encrypted

@@ -21,7 +21,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import javax.imageio.ImageIO;
 import javax.security.auth.login.AccountLockedException;
@@ -30,7 +29,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -263,8 +261,8 @@ public class RegistrationController {
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             // 3️⃣ Generate tokens using JwtUtil
-            String accessToken = jwtUtil.generateAccessToken(user.getId().toString());
-            String refreshToken = jwtUtil.generateRefreshToken(user, user.getId().toString());
+            String accessToken = jwtUtil.generateAccessToken(user.getId().toString(), user.getRole().name());
+            String refreshToken = jwtUtil.generateRefreshToken(user, user.getId().toString(), user.getRole().name());
 
 
             LocalDateTime now = LocalDateTime.now();
@@ -551,6 +549,15 @@ public class RegistrationController {
                 "Logout successful",
                 data,
                 LocalDateTime.now()
+        );
+    }
+    @PostMapping("/switch-role")
+    public ResponseEntity<?> switchRole(
+            @RequestBody SwitchRoleRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        return ResponseEntity.ok(
+                registrationService.switchRole(request.getRole(), httpRequest)
         );
     }
 }

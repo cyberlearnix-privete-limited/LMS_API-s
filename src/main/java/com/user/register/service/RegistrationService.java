@@ -14,6 +14,7 @@ import com.user.register.repository.OTPCodeRepository;
 import com.user.register.repository.AuditLogRepository;
 import com.user.register.repository.UserSessionRepository;
 import com.user.register.security.JwtUtil;
+import com.user.register.util.CountryCodes;
 import com.user.register.util.SecurityUtils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +26,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -57,79 +60,56 @@ public class RegistrationService {
     private static final int MAX_OTP_ATTEMPTS = 5;
     private byte[] secretKey;
 
-
     public User register(User user, HttpServletRequest request) throws Exception {
 
         // ================= GET CLIENT IP =================
         String ipAddress = request.getHeader("X-Forwarded-For");
-
         if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
             ipAddress = request.getRemoteAddr();
         }
 
         // ================= DEVICE + BROWSER + OS =================
         String userAgent = request.getHeader("User-Agent");
-
         String device = detectDevice(userAgent);
         String browser = detectBrowser(userAgent);
         String os = detectOS(userAgent);
-
-        if (device == null || device.isEmpty()) {
-            device = "Unknown Device";
-        }
-
-        // ================= RATE LIMIT CHECK =================
-        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
-
-        long recentRegistrations = userRepository.countByEmailOrMobileAndCreatedAtAfter(
-                user.getEmail(),
-                SecurityUtils.encrypt(user.getMobile(), encryptionKey),
-                oneHourAgo
-        );
-
-        if (recentRegistrations >= 3) {
-            throw new RuntimeException("Rate limit exceeded: You can only register 3 times per hour.");
-        }
+        if (device == null || device.isEmpty()) device = "Unknown Device";
 
         // ================= PASSWORD VALIDATION =================
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+        if (user.getPassword() == null || user.getPassword().isEmpty())
             throw new RuntimeException("Password is required");
-        }
-
-        if (user.getConfirmPassword() == null || user.getConfirmPassword().isEmpty()) {
+        if (user.getConfirmPassword() == null || user.getConfirmPassword().isEmpty())
             throw new RuntimeException("Confirm Password is required");
-        }
-
-        if (!user.getPassword().equals(user.getConfirmPassword())) {
+        if (!user.getPassword().equals(user.getConfirmPassword()))
             throw new RuntimeException("Password and Confirm Password do not match");
+        if (!isPasswordStrong(user.getPassword()))
+            throw new RuntimeException("Password is too weak");
+
+        // ================= COUNTRY CODE VALIDATION =================
+        String countryCode = user.getCountryCode();
+        if (countryCode == null || !CountryCodes.VALID_CODES.contains(countryCode)) {
+            throw new RuntimeException("Invalid country code");
         }
 
-        if (!isPasswordStrong(user.getPassword())) {
-            throw new RuntimeException(
-                    "Password is too weak. It must be at least 8 characters, contain uppercase, lowercase, number, and special character.");
-        }
-// ================= MOBILE VALIDATION =================
-        if (user.getMobile() == null || !user.getMobile().matches("\\d{10}")) {
-            throw new RuntimeException("Mobile number must be exactly 10 digits");
+        // ================= MOBILE VALIDATION =================
+        if (user.getMobile() == null || !user.getMobile().matches("\\d{6,12}")) {
+            throw new RuntimeException("Mobile number must be 6-12 digits");
         }
 
-// ================= MOBILE CHECK =================
-        String encryptedMobile = SecurityUtils.encrypt(user.getMobile(), encryptionKey);
-        // ================= MOBILE CHECK =================
+        // ================= FULL MOBILE =================
+        String fullMobile = countryCode + user.getMobile();
+
+        // ================= DUPLICATE MOBILE CHECK =================
+        String encryptedMobile = SecurityUtils.encrypt(fullMobile, encryptionKey);
         Optional<User> existingMobileUser = userRepository.findByMobile(encryptedMobile);
 
         if (existingMobileUser.isPresent()) {
-
             User mobileUser = existingMobileUser.get();
-
             if (mobileUser.getStatus() == User.Status.ACTIVE) {
                 throw new RuntimeException("Mobile number already registered");
             }
-            // NOT VERIFIED → resend OTP
             if (mobileUser.getStatus() == User.Status.PENDING_VERIFICATION) {
-
                 String otp = generateOTP();
-
                 OTPCode otpCode = OTPCode.builder()
                         .user(mobileUser)
                         .otp(otp)
@@ -138,35 +118,24 @@ public class RegistrationService {
                         .attempts(0)
                         .createdAt(LocalDateTime.now())
                         .build();
-
                 otpRepository.save(otpCode);
-
                 sendOtpEmail(mobileUser.getEmail(), otp, "Registration OTP");
-
                 return mobileUser;
             }
         }
+
+        // ================= DUPLICATE EMAIL CHECK =================
         Optional<User> existingUserOpt = userRepository.findByEmail(user.getEmail());
-
-        // ================= EXISTING USER =================
         if (existingUserOpt.isPresent()) {
-
             User existingUser = existingUserOpt.get();
-
-            if (existingUser.getStatus() == User.Status.ACTIVE) {
+            if (existingUser.getStatus() == User.Status.ACTIVE)
                 throw new RuntimeException("Email already registered");
-            }
-
             if (existingUser.getStatus() == User.Status.PENDING_VERIFICATION) {
-
                 if (user.getProfilePhoto() != null && !user.getProfilePhoto().isBlank()) {
                     existingUser.setProfilePhoto(user.getProfilePhoto());
                 }
-
                 userRepository.save(existingUser);
-
                 String otp = generateOTP();
-
                 OTPCode otpCode = OTPCode.builder()
                         .user(existingUser)
                         .otp(otp)
@@ -175,53 +144,34 @@ public class RegistrationService {
                         .attempts(0)
                         .createdAt(LocalDateTime.now())
                         .build();
-
                 otpRepository.save(otpCode);
-
                 sendOtpEmail(existingUser.getEmail(), otp, "Registration OTP");
-
                 return existingUser;
             }
         }
 
         // ================= NEW USER =================
-
         user.setFirstName(SecurityUtils.encrypt(user.getFirstName(), encryptionKey));
         user.setLastName(SecurityUtils.encrypt(user.getLastName(), encryptionKey));
-        user.setMobile(SecurityUtils.encrypt(user.getMobile(), encryptionKey));
+        user.setMobile(encryptedMobile); // Save encrypted mobile
         user.setDob(SecurityUtils.encrypt(user.getDob(), encryptionKey));
         user.setCity(SecurityUtils.encrypt(user.getCity(), encryptionKey));
         user.setState(SecurityUtils.encrypt(user.getState(), encryptionKey));
         user.setCountry(SecurityUtils.encrypt(user.getCountry(), encryptionKey));
-
-        if (user.getOrganization() != null) {
+        if (user.getOrganization() != null)
             user.setOrganization(SecurityUtils.encrypt(user.getOrganization(), encryptionKey));
-        }
-
-        if (user.getProfilePhoto() != null) {
+        if (user.getProfilePhoto() != null)
             user.setProfilePhoto(SecurityUtils.encrypt(user.getProfilePhoto(), encryptionKey));
-        }
-
-        if (user.getPreferredLanguage() != null) {
+        if (user.getPreferredLanguage() != null)
             user.setPreferredLanguage(SecurityUtils.encrypt(user.getPreferredLanguage(), encryptionKey));
-        }
-
-        if (user.getSkills() != null) {
+        if (user.getSkills() != null)
             user.setSkills(SecurityUtils.encrypt(user.getSkills(), encryptionKey));
-        }
-
-        if (user.getFieldOfStudy() != null) {
+        if (user.getFieldOfStudy() != null)
             user.setFieldOfStudy(SecurityUtils.encrypt(user.getFieldOfStudy(), encryptionKey));
-        }
-
-        if (user.getHighestQualification() != null) {
+        if (user.getHighestQualification() != null)
             user.setHighestQualification(SecurityUtils.encrypt(user.getHighestQualification(), encryptionKey));
-        }
 
-        // ================= PASSWORD HASH =================
         user.setPassword(SecurityUtils.hashPassword(user.getPassword()));
-
-        // ================= USER STATUS =================
         user.setStatus(User.Status.PENDING_VERIFICATION);
         user.setRole(User.Role.STUDENT);
         user.setIsInstructorApproved(false);
@@ -238,7 +188,6 @@ public class RegistrationService {
 
         // ================= GENERATE OTP =================
         String otp = generateOTP();
-
         OTPCode otpCode = OTPCode.builder()
                 .user(savedUser)
                 .otp(otp)
@@ -247,7 +196,6 @@ public class RegistrationService {
                 .attempts(0)
                 .createdAt(LocalDateTime.now())
                 .build();
-
         otpRepository.save(otpCode);
 
         // ================= AUDIT LOG =================
@@ -568,8 +516,8 @@ public class RegistrationService {
         );
 
         // 🔟 Generate Tokens
-        String accessToken = jwtUtil.generateAccessToken(user.getEmail());
-        String refreshToken = jwtUtil.generateRefreshToken(user, device);
+        String accessToken = jwtUtil.generateAccessToken(user.getEmail(), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user, device, user.getRole().name());
         // Save refresh token for rotation / blacklist
         user.setRefreshToken(refreshToken);
         user.setDevice(device);
@@ -656,7 +604,11 @@ public class RegistrationService {
         return String.valueOf(100000 + random.nextInt(900000));
     }
 
-    public ResponseEntity<Map<String, Object>> loginWithPassword(LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+    public ResponseEntity<Map<String, Object>> loginWithPassword(
+            LoginRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+
         LocalDateTime now = LocalDateTime.now();
 
         // 1️⃣ Fetch user
@@ -664,23 +616,26 @@ public class RegistrationService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         // 2️⃣ Account status checks
-        if (user.getStatus() == User.Status.PENDING_VERIFICATION)
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Email not verified");
-        if (user.getStatus() == User.Status.LOCKED)
-            throw new ResponseStatusException(HttpStatus.LOCKED, "Account locked due to too many failed login attempts");
-        if (user.getStatus() == User.Status.SUSPENDED)
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account suspended by admin");
+        switch (user.getStatus()) {
+            case PENDING_VERIFICATION -> throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Email not verified");
+            case LOCKED ->
+                    throw new ResponseStatusException(HttpStatus.LOCKED, "Account locked due to too many failed login attempts");
+            case SUSPENDED -> throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account suspended by admin");
+            default -> {
+            }
+        }
 
-        // 3️⃣ Instructor approval check
-        if (user.getRole() == User.Role.INSTRUCTOR && !user.getIsInstructorApproved())
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Instructor account not approved yet");
+        // 3️⃣ Determine effective role
+        String effectiveRole = user.getRole() == User.Role.INSTRUCTOR
+                ? (Boolean.TRUE.equals(user.getIsInstructorApproved()) ? "INSTRUCTOR" : "STUDENT")
+                : user.getRole().name();
 
         // 4️⃣ Get client IP
         String ipAddress = httpRequest.getHeader("X-Forwarded-For");
         if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress))
             ipAddress = httpRequest.getRemoteAddr();
 
-        // 5️⃣ Detect User-Agent details
+        // 5️⃣ Detect User-Agent info
         String userAgent = httpRequest.getHeader("User-Agent");
         String deviceType = detectDevice(userAgent);
         String os = detectOS(userAgent);
@@ -688,21 +643,17 @@ public class RegistrationService {
 
         if (userAgent != null) {
             String agent = userAgent.toLowerCase();
-
-            // Device detection
             if (agent.contains("postman")) deviceType = "Postman";
             else if (agent.contains("iphone") || agent.contains("android") || agent.contains("mobile"))
                 deviceType = "Mobile";
             else if (agent.contains("ipad") || agent.contains("tablet")) deviceType = "Tablet";
 
-            // OS detection
             if (agent.contains("windows")) os = "Windows";
             else if (agent.contains("mac")) os = "MacOS";
             else if (agent.contains("android")) os = "Android";
             else if (agent.contains("iphone") || agent.contains("ios")) os = "iOS";
             else if (agent.contains("linux")) os = "Linux";
 
-            // Browser detection
             if (agent.contains("chrome") && !agent.contains("edge")) browser = "Chrome";
             else if (agent.contains("firefox")) browser = "Firefox";
             else if (agent.contains("safari") && !agent.contains("chrome")) browser = "Safari";
@@ -711,13 +662,11 @@ public class RegistrationService {
 
         String deviceInfo = deviceType + " - " + os + " - " + browser;
 
-        // 6️⃣ Verify password with brute force lockout
+        // 6️⃣ Validate password
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            int failed = user.getFailedLoginAttempts() == null ? 1 : user.getFailedLoginAttempts() + 1;
+            int failed = (user.getFailedLoginAttempts() == null ? 1 : user.getFailedLoginAttempts() + 1);
             user.setFailedLoginAttempts(failed);
-
             if (failed >= MAX_FAILED_LOGIN) user.setStatus(User.Status.LOCKED);
-
             userRepository.save(user);
 
             auditLogRepository.save(AuditLog.builder()
@@ -730,35 +679,33 @@ public class RegistrationService {
 
             Map<String, Object> errorData = Map.of(
                     "remainingAttempts", MAX_FAILED_LOGIN - failed,
-                    "accountStatus", user.getStatus().name()
+                    "accountStatus", user.getStatus().name()  // plain string
             );
-
             throw new LoginFailedException("Invalid credentials", errorData);
         }
 
-        // 7️⃣ Reset failed attempts on success
+        // 7️⃣ Reset failed attempts
         user.setFailedLoginAttempts(0);
-        if (user.getCreatedAt() == null) user.setCreatedAt(now);
-        user.setUpdatedAt(now);
         user.setLastLoginAt(now);
+        user.setUpdatedAt(now);
         userRepository.save(user);
 
-// 8️⃣ Generate strong tokens
-        String accessToken = jwtUtil.generateAccessToken(user.getId().toString());
-        String refreshToken = jwtUtil.generateRefreshToken(user, user.getId().toString());
-
+        // 8️⃣ Generate tokens
+        String accessToken = jwtUtil.generateAccessToken(user.getId().toString(), effectiveRole);
+        String refreshToken = jwtUtil.generateRefreshToken(user, user.getId().toString(), effectiveRole);
 
         LocalDateTime accessTokenExpiry = now.plusMinutes(15);
         LocalDateTime refreshTokenExpiry = now.plusDays(30);
-        // Save refresh token for rotation & blacklist
+
+        // Save session/device info
         user.setRefreshToken(refreshToken);
-        user.setDevice(deviceInfo);
         user.setDevice(deviceType);
         user.setBrowser(browser);
         user.setOs(os);
         user.setIpAddress(ipAddress);
         user.setUserAgent(userAgent);
         userRepository.save(user);
+
         // 9️⃣ Audit success
         auditLogRepository.save(AuditLog.builder()
                 .user(user)
@@ -768,7 +715,7 @@ public class RegistrationService {
                 .createdAt(now)
                 .build());
 
-        // 🔟 Set HttpOnly cookies for tokens (CSRF & XSS safe)
+        // 🔟 Add cookies
         Cookie accessCookie = new Cookie("accessToken", accessToken);
         accessCookie.setHttpOnly(true);
         accessCookie.setPath("/");
@@ -782,35 +729,35 @@ public class RegistrationService {
         httpResponse.addCookie(refreshCookie);
 
         // 1️⃣1️⃣ Build response
-// 1️⃣1️⃣ Build response
         Map<String, Object> responseBody = new LinkedHashMap<>();
         responseBody.put("success", true);
         responseBody.put("statusCode", HttpStatus.OK.value());
         responseBody.put("message", "Login successful");
 
-// ✅ User info
+        // User info (plain strings for role & status)
         responseBody.put("userId", user.getId());
         responseBody.put("email", user.getEmail());
         responseBody.put("firstName", user.getFirstName());
         responseBody.put("lastName", user.getLastName());
         responseBody.put("mobile", user.getMobile());
+        responseBody.put("role", effectiveRole);          // no encryption
+        responseBody.put("status", user.getStatus().name()); // no encryption
+        responseBody.put("isInstructorApproved", user.getIsInstructorApproved());
 
-// ✅ Device & system info
-
-        responseBody.put("loginDevice", deviceInfo); // Full string: Device - OS - Browser
-        responseBody.put("device", deviceType);      // Just device
+        // Device info
+        responseBody.put("loginDevice", deviceInfo);
+        responseBody.put("device", deviceType);
         responseBody.put("browser", browser);
         responseBody.put("os", os);
         responseBody.put("userAgent", userAgent);
         responseBody.put("loginIp", ipAddress);
 
-// ✅ Tokens
+        // Tokens
         responseBody.put("accessToken", accessToken);
         responseBody.put("refreshToken", refreshToken);
         responseBody.put("accessTokenExpiresAt", accessTokenExpiry);
         responseBody.put("refreshTokenExpiresAt", refreshTokenExpiry);
 
-// ✅ Timestamp
         responseBody.put("timestamp", now);
 
         return new ResponseEntity<>(responseBody, HttpStatus.OK);
@@ -875,6 +822,7 @@ public class RegistrationService {
                 LocalDateTime.now()
         );
     }
+
     public ApiResponse<?> verifyLoginOtp(String email, String otp) {
         User user = userRepository.findByEmail(email).orElse(null);
 
@@ -931,14 +879,15 @@ public class RegistrationService {
         otpRepository.delete(code);
 
         // Generate tokens
-        String accessToken = jwtUtil.generateAccessToken(String.valueOf(user.getId()));
-        String refreshToken = jwtUtil.generateRefreshToken(user, String.valueOf(user.getId()));
+        String accessToken = jwtUtil.generateAccessToken(String.valueOf(user.getId()), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user, String.valueOf(user.getId()), user.getRole().name());
 
         Map<String, Object> data = new HashMap<>();
         data.put("accessToken", accessToken);
         data.put("refreshToken", refreshToken);
         data.put("accessTokenExpiresInSeconds", 900);
         data.put("refreshTokenExpiresInDays", 30);
+        data.put("userId", user.getId()); // ✅ ADD THIS
 
         return new ApiResponse<>(
                 true,
@@ -947,6 +896,7 @@ public class RegistrationService {
                 LocalDateTime.now()
         );
     }
+
     private ApiResponse<Map<String, Object>> buildOtpErrorResponse(String message, int remainingAttempts, long expiresInSeconds) {
         Map<String, Object> data = new HashMap<>();
         data.put("remainingAttempts", remainingAttempts);
@@ -959,6 +909,7 @@ public class RegistrationService {
                 LocalDateTime.now()
         );
     }
+
     public LoginResponse refreshAccessToken(String refreshToken) {
 
         // 1️⃣ Validate refresh token
@@ -974,8 +925,7 @@ public class RegistrationService {
 
         // 3️⃣ Extract userId
         String userId = jwtUtil.extractUserId(refreshToken);
-
-        User user = userRepository.findById(Long.parseLong(userId))
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (user.getStatus() != User.Status.ACTIVE) {
@@ -983,7 +933,7 @@ public class RegistrationService {
         }
 
         // 4️⃣ Generate new access token (15 minutes)
-        String newAccessToken = jwtUtil.generateAccessToken(userId);
+        String newAccessToken = jwtUtil.generateAccessToken(userId, user.getRole().name());
 
         LoginResponse response = new LoginResponse();
 
@@ -1083,10 +1033,11 @@ public class RegistrationService {
 
         return successData;
     }
+
     public Map<String, Object> logoutCurrentDevice(String accessToken, String ipAddress, String deviceInfo) {
         // 1️⃣ Validate token & extract userId
         String userId = jwtUtil.validateAccessTokenAndGetUserId(accessToken);
-        User user = userRepository.findById(Long.parseLong(userId))
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // 2️⃣ Delete the session from DB instead of in-memory blacklist
@@ -1110,4 +1061,66 @@ public class RegistrationService {
         data.put("sessionTerminated", true);
 
         return data;
-    }}
+    }
+
+    public Map<String, Object> switchRole(String role, HttpServletRequest httpRequest) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+
+        Long userId = Long.parseLong(auth.getName());
+
+        User user = userRepository.findById(UUID.fromString(String.valueOf(userId)))
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        // 2. Validate role
+        User.Role newRole;
+        try {
+            newRole = User.Role.valueOf(role.toUpperCase());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role");
+        }
+
+        // 3. Business check
+        if (newRole == User.Role.INSTRUCTOR &&
+                !Boolean.TRUE.equals(user.getIsInstructorApproved())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Instructor not approved yet");
+        }
+
+        // 4. Update role
+        user.setRole(newRole);
+        userRepository.save(user);
+
+        // 5. Generate tokens
+        String accessToken = jwtUtil.generateAccessToken(
+                String.valueOf(user.getId()),
+                user.getRole().name()
+        );
+
+        String refreshToken = jwtUtil.generateRefreshToken(
+                user,
+                String.valueOf(user.getId()),
+                user.getRole().name()
+        );
+
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+
+        // 6. Response
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("userId", user.getId());
+        data.put("email", user.getEmail());
+        data.put("activeRole", user.getRole().name());
+        data.put("accessToken", accessToken);
+        data.put("refreshToken", refreshToken);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Role switched successfully");
+        response.put("data", data);
+
+        return response;
+    }
+}

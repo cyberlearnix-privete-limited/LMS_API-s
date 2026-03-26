@@ -6,20 +6,30 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-@JsonInclude(JsonInclude.Include.NON_NULL) // ✅ ignore null fields
+import java.util.UUID;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
-@AllArgsConstructor   // generates constructor with all fields
-@NoArgsConstructor    // generates default no-arg constructor
+@AllArgsConstructor
+@NoArgsConstructor
 public class SessionDto {
+
     private Long id;
     private String deviceInfo;
-    private Long userId;
+    private UUID userId;
 
     private String ipAddress;
     private LocalDateTime loginTime;
     private String email;
-    public SessionDto(Long id, Long userId, String deviceInfo, String ipAddress, LocalDateTime loginTime, String email) {
+
+    public SessionDto(
+            Long id,
+            UUID userId,
+            String deviceInfo,
+            String ipAddress,
+            LocalDateTime loginTime,
+            String email
+    ) {
         this.id = id;
         this.userId = userId;
         this.deviceInfo = deviceInfo;

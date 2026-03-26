@@ -1,17 +1,23 @@
 package com.user.register.dto;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.UUID;
 
 public class LogoutResponse {
 
-    private Long userId;
+    private UUID userId;
     private String email;
     private String logoutDevice;
     private String logoutIp;
     private LocalDateTime logoutTime;
 
-    public LogoutResponse(Long userId, String email, String logoutDevice, String logoutIp, LocalDateTime logoutTime) {
+    public LogoutResponse(
+            UUID userId,
+            String email,
+            String logoutDevice,
+            String logoutIp,
+            LocalDateTime logoutTime
+    ) {
         this.userId = userId;
         this.email = email;
         this.logoutDevice = logoutDevice;
@@ -19,7 +25,7 @@ public class LogoutResponse {
         this.logoutTime = logoutTime;
     }
 
-    public Long getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 

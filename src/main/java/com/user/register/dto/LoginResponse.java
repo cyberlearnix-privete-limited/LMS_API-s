@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -25,7 +26,7 @@ public class LoginResponse {
     private long expiresInSeconds;
 
     // ✅ User info
-    private Long userId;
+    private UUID userId;
     private String email;
     private String firstName;
     private String lastName;
@@ -57,23 +58,11 @@ public class LoginResponse {
     private String os;
     private String userAgent;
 
-
-
-    public void setAccessTokenExpiresAt(LocalDateTime localDateTime) {
-    }
-
-    public void setRefreshTokenExpiresAt(LocalDateTime localDateTime) {
-    }
-
-    public void setTokenType(String bearer) {
-    }
-
-    public void setAccessTokenExpiresInMinutes(long l) {
-    }
-
-    public void setRefreshTokenExpiresInDays(long l) {
-    }
-
-    public void setLoginTime(LocalDateTime now) {
-    }
+    // ===== setters (unchanged) =====
+    public void setAccessTokenExpiresAt(LocalDateTime localDateTime) {}
+    public void setRefreshTokenExpiresAt(LocalDateTime localDateTime) {}
+    public void setTokenType(String bearer) {}
+    public void setAccessTokenExpiresInMinutes(long l) {}
+    public void setRefreshTokenExpiresInDays(long l) {}
+    public void setLoginTime(LocalDateTime now) {}
 }

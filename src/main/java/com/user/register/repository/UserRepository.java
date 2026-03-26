@@ -7,14 +7,17 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 
-public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByEmail(String email);
+public interface UserRepository extends JpaRepository<User, UUID>{
+        Optional<User> findByEmail(String email);
     Optional<User> findByMobile(String mobile);
+    Optional<User> findByMobileHash(String mobileHash);
     // Count registrations by email or mobile in the last 1 hour (for rate limiting)
     @Query("SELECT COUNT(u) FROM User u WHERE (u.email = :email OR u.mobile = :mobile) AND u.createdAt >= :after")
     long countByEmailOrMobileAndCreatedAtAfter(@Param("email") String email,
                                                @Param("mobile") String mobile,
                                                @Param("after") LocalDateTime after);
+
 }
