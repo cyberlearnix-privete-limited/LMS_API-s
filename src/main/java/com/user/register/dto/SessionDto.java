@@ -14,7 +14,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class SessionDto {
 
-    private Long id;
+    private UUID id;
     private String deviceInfo;
     private UUID userId;
 
@@ -23,7 +23,7 @@ public class SessionDto {
     private String email;
 
     public SessionDto(
-            Long id,
+            UUID id,
             UUID userId,
             String deviceInfo,
             String ipAddress,

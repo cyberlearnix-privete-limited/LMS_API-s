@@ -4,7 +4,6 @@ import com.user.register.entity.User;
 import com.user.register.service.TokenBlacklistService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
@@ -14,10 +13,13 @@ import java.util.Date;
 import java.util.UUID;
 
 @Component
-@RequiredArgsConstructor
 public class JwtUtil {
 
     private final TokenBlacklistService blacklistService;
+
+    public JwtUtil(TokenBlacklistService blacklistService) {
+        this.blacklistService = blacklistService;
+    }
 
     private static final String SECRET =
             "aVeryLongSuperSecureSecretKeyForJwtTokenGenerationWith256BitStrength123456789SecureKey";
@@ -28,12 +30,11 @@ public class JwtUtil {
     private static final long REFRESH_TOKEN_EXPIRATION = 30L * 24 * 60 * 60 * 1000;
 
     private SecretKey getSecretKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
+        return Keys.hmacShaKeyFor(SECRET.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     // ================= TOKEN GENERATION =================
     private String generateToken(String subject, long expiration, String type, String role) {
-
         return Jwts.builder()
                 .setId(UUID.randomUUID().toString())
                 .setSubject(subject)
@@ -54,8 +55,16 @@ public class JwtUtil {
         return generateToken(userId, REFRESH_TOKEN_EXPIRATION, "refresh", role);
     }
 
-    // ================= CLAIM EXTRACTION =================
-    private Claims extractAllClaims(String token) {
+    // ================= CLAIMS =================
+    private Claims getClaims(String token) {
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token missing");
+        }
+
+        if (blacklistService.isBlacklisted(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token blacklisted");
+        }
+
         try {
             return Jwts.parserBuilder()
                     .setSigningKey(getSecretKey())
@@ -66,51 +75,42 @@ public class JwtUtil {
 
         } catch (ExpiredJwtException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token expired");
-
         } catch (JwtException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         }
     }
 
     public String extractUserId(String token) {
-        return extractAllClaims(token).getSubject();
+        return getClaims(token).getSubject();
     }
 
-    // ✅ FIXED: NO ROLE MODIFICATION HERE
     public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
+        return getClaims(token).get("role", String.class);
     }
 
     public String extractTokenType(String token) {
-        return extractAllClaims(token).get("type", String.class);
+        return getClaims(token).get("type", String.class);
     }
 
-    // ================= VALIDATION =================
+
     public String validateAccessTokenAndGetUserId(String token) {
+        Claims claims = getClaims(token);
 
-        if (token == null || token.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token missing");
-        }
+        String type = claims.get("type", String.class);
 
-        if (blacklistService.isBlacklisted(token)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token blacklisted");
-        }
-
-        Claims claims = extractAllClaims(token);
-
-        if (!"access".equals(claims.get("type", String.class))) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token type");
+        if (!"access".equalsIgnoreCase(type)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not an access token");
         }
 
         return claims.getSubject();
     }
-
     public boolean validateToken(String token) {
         try {
-            extractAllClaims(token);
+            getClaims(token);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
+
 }

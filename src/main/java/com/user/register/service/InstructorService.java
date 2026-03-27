@@ -26,36 +26,35 @@ public class InstructorService {
     }
 
     public InstructorApplyResponse applyForInstructor(HttpServletRequest request) {
-        // 1️⃣ Get userId from request attribute (set by JwtAuthFilter)
-        Object userIdAttr = request.getAttribute("userId");
-        if (userIdAttr == null) {
+
+        String userId = (String) request.getAttribute("userId");
+
+        if (userId == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
 
-        UUID userId = (UUID) userIdAttr;
+        UUID uuid = UUID.fromString(userId);
 
-        // 2️⃣ Load user and check if account is active
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(uuid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
 
-        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+        if (user.getLockedUntil() != null &&
+                user.getLockedUntil().isAfter(LocalDateTime.now())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "Account temporarily locked until " + user.getLockedUntil());
+                    "Account locked until " + user.getLockedUntil());
         }
 
-        // 3️⃣ Check if user already applied
-        if (user.getAppliedRole() == User.Role.INSTRUCTOR
-                && user.getApplicationStatus() == User.ApplicationStatus.PENDING_VERIFICATION) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Instructor application already pending");
+        if (User.Role.INSTRUCTOR.equals(user.getAppliedRole()) &&
+                User.ApplicationStatus.PENDING_VERIFICATION.equals(user.getApplicationStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Already applied");
         }
 
-        // 4️⃣ Update applied role and application status
         user.setAppliedRole(User.Role.INSTRUCTOR);
         user.setApplicationStatus(User.ApplicationStatus.PENDING_VERIFICATION);
         user.setUpdatedAt(LocalDateTime.now());
+
         userRepository.save(user);
 
-        // 5️⃣ Build detailed response
         return new InstructorApplyResponse(
                 user.getId(),
                 decrypt(user.getFirstName()),

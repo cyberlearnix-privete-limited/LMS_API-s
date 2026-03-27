@@ -31,7 +31,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
+import jakarta.servlet.http.Cookie;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -435,16 +435,27 @@ public class RegistrationController {
         LocalDateTime now = LocalDateTime.now();
 
         try {
-            // 1️⃣ Get Authorization header
-            String authHeader = httpRequest.getHeader("Authorization");
+            // 1️⃣ Get refresh token from Authorization header or cookies
+            String refreshToken = null;
 
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new ApiResponse<>(false, "Missing or invalid Authorization header", null, now));
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                refreshToken = authHeader.substring(7).trim();
             }
 
-            // 2️⃣ Extract the refresh token from header
-            String refreshToken = authHeader.substring(7); // Remove "Bearer "
+            if ((refreshToken == null || refreshToken.isBlank()) && httpRequest.getCookies() != null) {
+                for (Cookie cookie : httpRequest.getCookies()){
+                    if ("refreshToken".equals(cookie.getName())) {
+                        refreshToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (refreshToken == null || refreshToken.isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, "Missing or invalid refresh token", null, now));
+            }
 
             // 3️⃣ Call service to refresh access token
             LoginResponse response = registrationService.refreshAccessToken(refreshToken);

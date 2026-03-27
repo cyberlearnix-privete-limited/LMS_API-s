@@ -1019,6 +1019,10 @@ public class RegistrationService {
 
             throw new InvalidOtpException("Invalid OTP", 5 - attempts, secondsLeft);
         }
+// ❌ prevent reuse of current password
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new RuntimeException("This password is already used. Please create a new password.");
+        }
 
         // ✅ OTP correct → reset password
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -1071,9 +1075,10 @@ public class RegistrationService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
 
-        Long userId = Long.parseLong(auth.getName());
+        // JWT subject stores UUID string (user id)
+        UUID userId = UUID.fromString(auth.getName());
 
-        User user = userRepository.findById(UUID.fromString(String.valueOf(userId)))
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         // 2. Validate role
         User.Role newRole;

@@ -10,10 +10,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
+import jakarta.servlet.http.Cookie;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -24,9 +24,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.equals("/auth/login")
-                || path.equals("/auth/register")
-                || path.startsWith("/oauth2")
+
+        // Allow anonymous access to public auth operations only
+        return path.equals("/auth/register")
+                || path.equals("/auth/verify-email")
+                || path.equals("/auth/login/password")
+                || path.equals("/auth/login/otp/request")
+                || path.equals("/auth/login/otp/verify")
+                || path.equals("/auth/password/forgot")
+                || path.equals("/auth/password/reset")
+                || path.equals("/auth/refresh")
                 || path.startsWith("/swagger-ui")
                 || path.startsWith("/v3/api-docs");
     }
@@ -37,6 +44,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String token = extractToken(request);
 
         if (token == null) {
@@ -45,46 +57,64 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         try {
-            // 1️⃣ Validate token
-            String userIdStr = jwtUtil.validateAccessTokenAndGetUserId(token);
-            UUID userId = UUID.fromString(userIdStr);
+            // ✅ validate token
+            String userId = jwtUtil.validateAccessTokenAndGetUserId(token);
 
-            // 2️⃣ Extract and normalize role
-            String role = jwtUtil.extractRole(token); // already uppercase in JwtUtil
+            // ✅ extract role
+            String role = jwtUtil.extractRole(token);
 
             if (role == null || role.isBlank()) {
-                throw new RuntimeException("Role missing in token");
+                role = "USER";
             }
-            role = jwtUtil.extractRole(token);
 
-            // 3️⃣ Set Spring Security authentication
+            // 🔥 FIX: remove ROLE_ duplication + normalize
+            role = role.replace("ROLE_", "").toUpperCase();
+
             SimpleGrantedAuthority authority =
                     new SimpleGrantedAuthority("ROLE_" + role);
+
             UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(userId, null, Collections.singletonList(authority));
+                    new UsernamePasswordAuthenticationToken(
+                            userId,
+                            null,
+                            Collections.singletonList(authority)
+                    );
 
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // 4️⃣ Attach userId to request for services
             request.setAttribute("userId", userId);
 
-            // Continue filter chain
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            // Invalid / expired / missing role → return 401 immediately
             SecurityContextHolder.clearContext();
+
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Unauthorized\", \"message\": \"" + e.getMessage() + "\"}");
+
+            response.getWriter().write(
+                    "{ \"error\": \"Unauthorized\", \"message\": \"" + e.getClass().getSimpleName() + ": " + e.getMessage() + "\" }"
+            );
         }
     }
 
     private String extractToken(HttpServletRequest request) {
+        // 1) Prefer explicit bearer header
         String header = request.getHeader("Authorization");
+
         if (header != null && header.startsWith("Bearer ")) {
             return header.substring(7).trim();
         }
+
+        // 2) Fallback to access token cookie (login writes this cookie)
+        if (request.getCookies() != null) {
+            return Arrays.stream(request.getCookies())
+                    .filter(c -> "accessToken".equals(c.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElse(null);
+        }
+
         return null;
     }
 }
